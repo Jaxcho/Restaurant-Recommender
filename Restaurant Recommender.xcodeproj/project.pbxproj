@@ -10,9 +10,22 @@
 		3A2C242C2FBA68CD00AC02F9 /* Restaurant Recommender.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Restaurant Recommender.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3A9A95812FD614EF0059C11F /* Exceptions for "Restaurant Recommender" folder in "Restaurant Recommender" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Restaurant-Recommender-Info.plist",
+			);
+			target = 3A2C242B2FBA68CC00AC02F9 /* Restaurant Recommender */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		3A2C242E2FBA68CD00AC02F9 /* Restaurant Recommender */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3A9A95812FD614EF0059C11F /* Exceptions for "Restaurant Recommender" folder in "Restaurant Recommender" target */,
+			);
 			path = "Restaurant Recommender";
 			sourceTree = "<group>";
 		};
@@ -254,6 +267,7 @@
 				DEVELOPMENT_TEAM = GQ3942A3S6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Restaurant-Recommender-Info.plist";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -287,6 +301,7 @@
 				DEVELOPMENT_TEAM = GQ3942A3S6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Restaurant-Recommender-Info.plist";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

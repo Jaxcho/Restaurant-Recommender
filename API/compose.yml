@@ -1,0 +1,55 @@
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  db:
+    # build: .                          # uses the Dockerfile in this directory
+    image: postgres:17-alpine       # swap to this line if not using a custom Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB:       ${POSTGRES_DB:-app}
+      PGDATA:            /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-postgres}", "-d", "${POSTGRES_DB:-app}"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  # ── pgAdmin ──────────────────────────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: changeme
+      PGADMIN_CONFIG_MAX_LOGIN_ATTEMPTS: 1000
+      PGADMIN_CONFIG_LOGIN_BANNED_TIME: 60
+      PGADMIN_LISTEN_PORT: 5050
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:5050"
+    networks:
+      - backend
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  pgdata:
+  pgadmin:
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  backend:
+    driver: bridge

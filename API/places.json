@@ -1,0 +1,1332 @@
+places {
+  name: "places/ChIJq5z5IB5g30cRcQK65cb-VJ0"
+  id: "ChIJq5z5IB5g30cRcQK65cb-VJ0"
+  types: "tourist_attraction"
+  types: "museum"
+  types: "restaurant"
+  types: "food"
+  types: "association_or_organization"
+  types: "point_of_interest"
+  types: "service"
+  types: "establishment"
+  national_phone_number: "01825 720800"
+  international_phone_number: "+44 1825 720800"
+  formatted_address: "Sussex, Sheffield Park, Uckfield TN22 3QL, UK"
+  address_components {
+    long_text: "Sussex"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "Sheffield Park"
+    short_text: "Sheffield Park"
+    types: "route"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "Uckfield"
+    short_text: "Uckfield"
+    types: "postal_town"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "East Sussex"
+    short_text: "East Sussex"
+    types: "administrative_area_level_2"
+    types: "political"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "England"
+    short_text: "England"
+    types: "administrative_area_level_1"
+    types: "political"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "United Kingdom"
+    short_text: "GB"
+    types: "country"
+    types: "political"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "TN22 3QL"
+    short_text: "TN22 3QL"
+    types: "postal_code"
+    language_code: "en-US"
+  }
+  plus_code {
+    global_code: "9C2XXXWX+6H"
+    compound_code: "XXWX+6H Uckfield, UK"
+  }
+  location {
+    latitude: 50.9955534
+    longitude: -0.0010084999999999998
+  }
+  viewport {
+    low {
+      latitude: 50.994184419708496
+      longitude: -0.0022633802915020297
+    }
+    high {
+      latitude: 50.996882380291495
+      longitude: 0.00043458029150203009
+    }
+  }
+  rating: 4.7
+  google_maps_uri: "https://maps.google.com/?cid=11336966292209533553&g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+  website_uri: "https://www.bluebell-railway.com/the-stations/sheffield-park-station/"
+  utc_offset_minutes: 60
+  adr_format_address: "Sussex, <span class=\"street-address\">Sheffield Park</span>, <span class=\"locality\">Uckfield</span> <span class=\"postal-code\">TN22 3QL</span>, <span class=\"country-name\">UK</span>"
+  business_status: OPERATIONAL
+  user_rating_count: 3852
+  icon_mask_base_uri: "https://maps.gstatic.com/mapfiles/place_api/icons/v2/generic_pinlet"
+  icon_background_color: "#13B5C7"
+  display_name {
+    text: "Bluebell Railway - (Sheffield Park, Station)"
+    language_code: "en"
+  }
+  primary_type_display_name {
+    text: "Tourist Attraction"
+    language_code: "en-US"
+  }
+  primary_type: "tourist_attraction"
+  short_formatted_address: "Sussex, Sheffield Park, Uckfield"
+  editorial_summary {
+    text: "An 1880\'s station with steam engines on display, a museum & gift shop on a heritage railway line."
+    language_code: "en"
+  }
+  good_for_children: true
+  restroom: true
+  payment_options {
+    accepts_debit_cards: true
+    accepts_cash_only: false
+    accepts_nfc: true
+  }
+  parking_options {
+    free_parking_lot: true
+    free_street_parking: true
+    paid_street_parking: false
+  }
+  accessibility_options {
+    wheelchair_accessible_parking: true
+    wheelchair_accessible_entrance: true
+    wheelchair_accessible_restroom: true
+    wheelchair_accessible_seating: true
+  }
+  containing_places {
+    name: "places/ChIJW7BUwaCKdUgREXPCIMnY2Fw"
+    id: "ChIJW7BUwaCKdUgREXPCIMnY2Fw"
+  }
+  address_descriptor {
+    landmarks {
+      name: "places/ChIJW7BUwaCKdUgREXPCIMnY2Fw"
+      place_id: "ChIJW7BUwaCKdUgREXPCIMnY2Fw"
+      display_name {
+        text: "Sheffield Park"
+        language_code: "en"
+      }
+      types: "establishment"
+      types: "point_of_interest"
+      types: "train_station"
+      types: "transit_station"
+      spatial_relationship: DOWN_THE_ROAD
+      straight_line_distance_meters: 8.06239605
+      travel_distance_meters: 168.130539
+    }
+    landmarks {
+      name: "places/ChIJjy0gx6CKdUgRhDWbALHeF0k"
+      place_id: "ChIJjy0gx6CKdUgRhDWbALHeF0k"
+      display_name {
+        text: "Bluebell Railway Museum"
+        language_code: "en"
+      }
+      types: "establishment"
+      types: "museum"
+      types: "point_of_interest"
+      spatial_relationship: BESIDE
+      straight_line_distance_meters: 59.2270432
+      travel_distance_meters: 4.6704874
+    }
+    landmarks {
+      name: "places/ChIJv7Uftx9g30cRgLEznMluOUA"
+      place_id: "ChIJv7Uftx9g30cRgLEznMluOUA"
+      display_name {
+        text: "Ouse Meadow Campsite"
+        language_code: "en"
+      }
+      types: "campground"
+      types: "establishment"
+      types: "lodging"
+      types: "point_of_interest"
+      spatial_relationship: AROUND_THE_CORNER
+      straight_line_distance_meters: 233.635849
+      travel_distance_meters: 278.719116
+    }
+    landmarks {
+      name: "places/ChIJDboujgmLdUgRFd5P0UO3hUw"
+      place_id: "ChIJDboujgmLdUgRFd5P0UO3hUw"
+      display_name {
+        text: "The Bessemer Arms"
+        language_code: "en"
+      }
+      types: "bar"
+      types: "cafe"
+      types: "establishment"
+      types: "food"
+      types: "point_of_interest"
+      types: "restaurant"
+      spatial_relationship: DOWN_THE_ROAD
+      straight_line_distance_meters: 39.4792709
+      travel_distance_meters: 31.6067924
+    }
+    landmarks {
+      name: "places/ChIJbxyms-5h30cRi7_SmTkKrnc"
+      place_id: "ChIJbxyms-5h30cRi7_SmTkKrnc"
+      display_name {
+        text: "Bluebell Railway Visitor Car Park"
+        language_code: "en"
+      }
+      types: "establishment"
+      types: "parking"
+      types: "point_of_interest"
+      spatial_relationship: AROUND_THE_CORNER
+      straight_line_distance_meters: 180.081924
+      travel_distance_meters: 218.151901
+    }
+    areas {
+      name: "places/ChIJs1v67aCKdUgR6jZQTv0IvpI"
+      place_id: "ChIJs1v67aCKdUgR6jZQTv0IvpI"
+      display_name {
+        text: "Sheffield Park"
+        language_code: "en"
+      }
+      containment: OUTSKIRTS
+    }
+    areas {
+      name: "places/ChIJEVSf36CKdUgRHz-46xRiVLg"
+      place_id: "ChIJEVSf36CKdUgRHz-46xRiVLg"
+      display_name {
+        text: "Bluebell Business Estate"
+        language_code: "und"
+      }
+      containment: NEAR
+    }
+  }
+  google_maps_links {
+    directions_uri: "https://www.google.com/maps/dir//\'\'/data=!4m7!4m6!1m1!4e2!1m2!1m1!1s0x47df601e20f99cab:0x9d54fec6e5ba0271!3e0?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    place_uri: "https://maps.google.com/?cid=11336966292209533553&g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    write_a_review_uri: "https://www.google.com/maps/place//data=!4m3!3m2!1s0x47df601e20f99cab:0x9d54fec6e5ba0271!12e1?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    reviews_uri: "https://www.google.com/maps/place//data=!4m4!3m3!1s0x47df601e20f99cab:0x9d54fec6e5ba0271!9m1!1b1?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    photos_uri: "https://www.google.com/maps/place//data=!4m3!3m2!1s0x47df601e20f99cab:0x9d54fec6e5ba0271!10e5?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+  }
+  review_summary {
+    text {
+      text: "People say this tourist attraction offers a nostalgic steam train ride through beautiful countryside, with opportunities to visit a museum, steam works, and souvenir shop. They highlight the family-friendly atmosphere, the magical experience for both children and adults, and the well-maintained stations and locomotives. They also like the friendly and helpful staff, and the decent food at the cafe."
+      language_code: "en-US"
+    }
+    flag_content_uri: "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOjU2bS1IdG5Ha1pjOXlKcFVQWEtLX0E%7CCAIQACorChtyc19oOjU2bS1IdG5Ha1pjOXlKcFVQWEtLX0ESDAi_2OfEBhD44ZHwAg&d=17924085&t=8"
+    disclosure_text {
+      text: "Summarized with Gemini"
+      language_code: "en-US"
+    }
+    reviews_uri: "https://www.google.com/maps/place//data=!4m4!3m3!1s0x47df601e20f99cab:0x9d54fec6e5ba0271!9m1!1b1"
+  }
+  time_zone {
+    id: "Europe/London"
+  }
+  postal_address {
+    region_code: "GB"
+    language_code: "en-US"
+    postal_code: "TN22 3QL"
+    locality: "Uckfield"
+    address_lines: "Sussex"
+    address_lines: "Sheffield Park"
+  }
+  google_maps_type_label {
+    text: "Tourist Attraction"
+    language_code: "en-US"
+  }
+}
+places {
+  name: "places/ChIJ-WZW76CKdUgRltlsl-Jgn4E"
+  id: "ChIJ-WZW76CKdUgRltlsl-Jgn4E"
+  types: "brewery"
+  types: "pub"
+  types: "liquor_store"
+  types: "bar"
+  types: "manufacturer"
+  types: "restaurant"
+  types: "food"
+  types: "point_of_interest"
+  types: "store"
+  types: "service"
+  types: "establishment"
+  formatted_address: "Unit 24, Bluebell Business Estate, Sheffield Park, Uckfield TN22 3HQ, UK"
+  address_components {
+    long_text: "Unit 24"
+    short_text: "Unit 24"
+    types: "subpremise"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "Bluebell Business Estate"
+    short_text: "Bluebell Business Estate"
+    types: "premise"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "Sheffield Park"
+    short_text: "Sheffield Park"
+    types: "premise"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "Uckfield"
+    short_text: "Uckfield"
+    types: "postal_town"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "East Sussex"
+    short_text: "East Sussex"
+    types: "administrative_area_level_2"
+    types: "political"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "England"
+    short_text: "England"
+    types: "administrative_area_level_1"
+    types: "political"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "United Kingdom"
+    short_text: "GB"
+    types: "country"
+    types: "political"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "TN22 3HQ"
+    short_text: "TN22 3HQ"
+    types: "postal_code"
+    language_code: "en-US"
+  }
+  plus_code {
+    global_code: "9C2XXXVX+R6"
+    compound_code: "XXVX+R6 Uckfield, UK"
+  }
+  location {
+    latitude: 50.9945867
+    longitude: -0.0019298000000000002
+  }
+  viewport {
+    low {
+      latitude: 50.9932985697085
+      longitude: -0.00311858029150203
+    }
+    high {
+      latitude: 50.9959965302915
+      longitude: -0.00042061970849797004
+    }
+  }
+  rating: 4.9
+  google_maps_uri: "https://maps.google.com/?cid=9340290678509066646&g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+  website_uri: "https://www.everydaybrewco.com/"
+  regular_opening_hours {
+    open_now: false
+    periods {
+      open_ {
+        day: 0
+        hour: 11
+        minute: 0
+      }
+      close {
+        day: 0
+        hour: 17
+        minute: 0
+      }
+    }
+    periods {
+      open_ {
+        day: 4
+        hour: 11
+        minute: 0
+      }
+      close {
+        day: 4
+        hour: 17
+        minute: 0
+      }
+    }
+    periods {
+      open_ {
+        day: 5
+        hour: 11
+        minute: 0
+      }
+      close {
+        day: 5
+        hour: 21
+        minute: 0
+      }
+    }
+    periods {
+      open_ {
+        day: 6
+        hour: 11
+        minute: 0
+      }
+      close {
+        day: 6
+        hour: 21
+        minute: 0
+      }
+    }
+    weekday_descriptions: "Monday: Closed"
+    weekday_descriptions: "Tuesday: Closed"
+    weekday_descriptions: "Wednesday: Closed"
+    weekday_descriptions: "Thursday: 11:00 AM – 5:00 PM"
+    weekday_descriptions: "Friday: 11:00 AM – 9:00 PM"
+    weekday_descriptions: "Saturday: 11:00 AM – 9:00 PM"
+    weekday_descriptions: "Sunday: 11:00 AM – 5:00 PM"
+    next_open_time {
+      seconds: 1779444000
+    }
+  }
+  utc_offset_minutes: 60
+  adr_format_address: "Unit 24, Bluebell Business Estate, Sheffield Park, <span class=\"locality\">Uckfield</span> <span class=\"postal-code\">TN22 3HQ</span>, <span class=\"country-name\">UK</span>"
+  business_status: OPERATIONAL
+  user_rating_count: 134
+  icon_mask_base_uri: "https://maps.gstatic.com/mapfiles/place_api/icons/v2/generic_pinlet"
+  icon_background_color: "#7B9EB0"
+  display_name {
+    text: "Everyday Brew Co. - Taproom - Pizza - Coffee Roasters - Cafe"
+    language_code: "en"
+  }
+  primary_type_display_name {
+    text: "Brewery"
+    language_code: "en-US"
+  }
+  serves_beer: true
+  current_opening_hours {
+    open_now: false
+    periods {
+      open_ {
+        day: 0
+        hour: 11
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 24
+        }
+      }
+      close {
+        day: 0
+        hour: 17
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 24
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 4
+        hour: 11
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 28
+        }
+      }
+      close {
+        day: 4
+        hour: 17
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 28
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 5
+        hour: 11
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 22
+        }
+      }
+      close {
+        day: 5
+        hour: 21
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 22
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 6
+        hour: 11
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 23
+        }
+      }
+      close {
+        day: 6
+        hour: 21
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 23
+        }
+      }
+    }
+    weekday_descriptions: "Monday: Closed"
+    weekday_descriptions: "Tuesday: Closed"
+    weekday_descriptions: "Wednesday: Closed"
+    weekday_descriptions: "Thursday: 11:00 AM – 5:00 PM"
+    weekday_descriptions: "Friday: 11:00 AM – 9:00 PM"
+    weekday_descriptions: "Saturday: 11:00 AM – 9:00 PM"
+    weekday_descriptions: "Sunday: 11:00 AM – 5:00 PM"
+    next_open_time {
+      seconds: 1779444000
+    }
+  }
+  current_secondary_opening_hours {
+    open_now: false
+    periods {
+      open_ {
+        day: 0
+        hour: 12
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 24
+        }
+      }
+      close {
+        day: 0
+        hour: 17
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 24
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 4
+        hour: 12
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 28
+        }
+      }
+      close {
+        day: 4
+        hour: 17
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 28
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 5
+        hour: 12
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 22
+        }
+      }
+      close {
+        day: 5
+        hour: 20
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 22
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 6
+        hour: 12
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 23
+        }
+      }
+      close {
+        day: 6
+        hour: 20
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 23
+        }
+      }
+    }
+    weekday_descriptions: "Monday: Closed"
+    weekday_descriptions: "Tuesday: Closed"
+    weekday_descriptions: "Wednesday: Closed"
+    weekday_descriptions: "Thursday: 12:00 – 5:00 PM"
+    weekday_descriptions: "Friday: 12:00 – 8:00 PM"
+    weekday_descriptions: "Saturday: 12:00 – 8:00 PM"
+    weekday_descriptions: "Sunday: 12:00 – 5:00 PM"
+    secondary_hours_type: KITCHEN
+    next_open_time {
+      seconds: 1779447600
+    }
+  }
+  regular_secondary_opening_hours {
+    open_now: false
+    periods {
+      open_ {
+        day: 0
+        hour: 12
+        minute: 0
+      }
+      close {
+        day: 0
+        hour: 17
+        minute: 0
+      }
+    }
+    periods {
+      open_ {
+        day: 4
+        hour: 12
+        minute: 0
+      }
+      close {
+        day: 4
+        hour: 17
+        minute: 0
+      }
+    }
+    periods {
+      open_ {
+        day: 5
+        hour: 12
+        minute: 0
+      }
+      close {
+        day: 5
+        hour: 20
+        minute: 0
+      }
+    }
+    periods {
+      open_ {
+        day: 6
+        hour: 12
+        minute: 0
+      }
+      close {
+        day: 6
+        hour: 20
+        minute: 0
+      }
+    }
+    weekday_descriptions: "Monday: Closed"
+    weekday_descriptions: "Tuesday: Closed"
+    weekday_descriptions: "Wednesday: Closed"
+    weekday_descriptions: "Thursday: 12:00 – 5:00 PM"
+    weekday_descriptions: "Friday: 12:00 – 8:00 PM"
+    weekday_descriptions: "Saturday: 12:00 – 8:00 PM"
+    weekday_descriptions: "Sunday: 12:00 – 5:00 PM"
+    secondary_hours_type: KITCHEN
+    next_open_time {
+      seconds: 1779447600
+    }
+  }
+  primary_type: "brewery"
+  short_formatted_address: "Unit 24, Bluebell Business Estate, Sheffield Park, Bluebell Business Estate, Uckfield"
+  payment_options {
+    accepts_credit_cards: true
+    accepts_debit_cards: true
+    accepts_cash_only: false
+    accepts_nfc: true
+  }
+  parking_options {
+    free_parking_lot: true
+    free_street_parking: true
+  }
+  accessibility_options {
+    wheelchair_accessible_parking: true
+    wheelchair_accessible_entrance: true
+    wheelchair_accessible_restroom: true
+    wheelchair_accessible_seating: true
+  }
+  address_descriptor {
+    landmarks {
+      name: "places/ChIJof4o_ej2dUgR8cu9c3Swfvs"
+      place_id: "ChIJof4o_ej2dUgR8cu9c3Swfvs"
+      display_name {
+        text: "Sussex Chef"
+        language_code: "en"
+      }
+      types: "establishment"
+      types: "food"
+      types: "point_of_interest"
+      types: "store"
+      spatial_relationship: ACROSS_THE_ROAD
+      straight_line_distance_meters: 50.0885277
+      travel_distance_meters: 20.5453796
+    }
+    landmarks {
+      name: "places/ChIJje6d7DyLdUgRUmp0AHhi8QA"
+      place_id: "ChIJje6d7DyLdUgRUmp0AHhi8QA"
+      display_name {
+        text: "Horizon Performance Cars"
+        language_code: "en"
+      }
+      types: "establishment"
+      types: "point_of_interest"
+      types: "store"
+      spatial_relationship: ACROSS_THE_ROAD
+      straight_line_distance_meters: 43.1123581
+      travel_distance_meters: 39.8879471
+    }
+    landmarks {
+      name: "places/ChIJyyyogi1E30cRar73zNCY6CY"
+      place_id: "ChIJyyyogi1E30cRar73zNCY6CY"
+      display_name {
+        text: "Vittle and Swig Events"
+        language_code: "en"
+      }
+      types: "establishment"
+      types: "food"
+      types: "point_of_interest"
+      spatial_relationship: DOWN_THE_ROAD
+      straight_line_distance_meters: 29.4286
+      travel_distance_meters: 29.545311
+    }
+    landmarks {
+      name: "places/ChIJCbqjkqCKdUgR8ZwIpssaHyo"
+      place_id: "ChIJCbqjkqCKdUgR8ZwIpssaHyo"
+      display_name {
+        text: "Impact"
+        language_code: "en"
+      }
+      types: "car_repair"
+      types: "establishment"
+      types: "point_of_interest"
+      spatial_relationship: DOWN_THE_ROAD
+      straight_line_distance_meters: 69.9070587
+      travel_distance_meters: 69.8891678
+    }
+    landmarks {
+      name: "places/ChIJq00Jz96LdUgRZF8d08hNa0s"
+      place_id: "ChIJq00Jz96LdUgRZF8d08hNa0s"
+      display_name {
+        text: "Bluebell Business Estate"
+        language_code: "en"
+      }
+      types: "establishment"
+      types: "point_of_interest"
+      types: "storage"
+      spatial_relationship: DOWN_THE_ROAD
+      straight_line_distance_meters: 135.926224
+      travel_distance_meters: 134.653351
+    }
+    areas {
+      name: "places/ChIJEVSf36CKdUgRHz-46xRiVLg"
+      place_id: "ChIJEVSf36CKdUgRHz-46xRiVLg"
+      display_name {
+        text: "Bluebell Business Estate"
+        language_code: "und"
+      }
+      containment: WITHIN
+    }
+    areas {
+      name: "places/ChIJs1v67aCKdUgR6jZQTv0IvpI"
+      place_id: "ChIJs1v67aCKdUgR6jZQTv0IvpI"
+      display_name {
+        text: "Sheffield Park"
+        language_code: "en"
+      }
+      containment: WITHIN
+    }
+  }
+  google_maps_links {
+    directions_uri: "https://www.google.com/maps/dir//\'\'/data=!4m7!4m6!1m1!4e2!1m2!1m1!1s0x48758aa0ef5666f9:0x819f60e2976cd996!3e0?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    place_uri: "https://maps.google.com/?cid=9340290678509066646&g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    write_a_review_uri: "https://www.google.com/maps/place//data=!4m3!3m2!1s0x48758aa0ef5666f9:0x819f60e2976cd996!12e1?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    reviews_uri: "https://www.google.com/maps/place//data=!4m4!3m3!1s0x48758aa0ef5666f9:0x819f60e2976cd996!9m1!1b1?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    photos_uri: "https://www.google.com/maps/place//data=!4m3!3m2!1s0x48758aa0ef5666f9:0x819f60e2976cd996!10e5?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+  }
+  time_zone {
+    id: "Europe/London"
+  }
+  postal_address {
+    region_code: "GB"
+    language_code: "en-US"
+    postal_code: "TN22 3HQ"
+    locality: "Uckfield"
+    address_lines: "Unit 24, Bluebell Business Estate"
+    address_lines: "Sheffield Park"
+  }
+  google_maps_type_label {
+    text: "Brewery"
+    language_code: "en-US"
+  }
+}
+places {
+  name: "places/ChIJDboujgmLdUgRFd5P0UO3hUw"
+  id: "ChIJDboujgmLdUgRFd5P0UO3hUw"
+  types: "buffet_restaurant"
+  types: "pub"
+  types: "cafe"
+  types: "bar"
+  types: "restaurant"
+  types: "food"
+  types: "point_of_interest"
+  types: "establishment"
+  national_phone_number: "01825 720800"
+  international_phone_number: "+44 1825 720800"
+  formatted_address: "Bluebell Railway - (Sheffield Park, Station), Station Approach, Uckfield TN22 3QL, UK"
+  address_components {
+    long_text: "Bluebell Railway - (Sheffield Park, Station)"
+    short_text: "Bluebell Railway - (Sheffield Park, Station)"
+    types: "point_of_interest"
+    types: "establishment"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "Station Approach"
+    short_text: "Station Approach"
+    types: "route"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "Uckfield"
+    short_text: "Uckfield"
+    types: "postal_town"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "East Sussex"
+    short_text: "East Sussex"
+    types: "administrative_area_level_2"
+    types: "political"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "England"
+    short_text: "England"
+    types: "administrative_area_level_1"
+    types: "political"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "United Kingdom"
+    short_text: "GB"
+    types: "country"
+    types: "political"
+    language_code: "en"
+  }
+  address_components {
+    long_text: "TN22 3QL"
+    short_text: "TN22 3QL"
+    types: "postal_code"
+    language_code: "en-US"
+  }
+  plus_code {
+    global_code: "9C2XXXWX+3P"
+    compound_code: "XXWX+3P Uckfield, UK"
+  }
+  location {
+    latitude: 50.9951839
+    longitude: -0.0007232
+  }
+  viewport {
+    low {
+      latitude: 50.9939279197085
+      longitude: -0.00178373029150203
+    }
+    high {
+      latitude: 50.9966258802915
+      longitude: 0.00091423029150203012
+    }
+  }
+  rating: 4.1
+  google_maps_uri: "https://maps.google.com/?cid=5514014820687404565&g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+  website_uri: "http://www.bluebell-railway.com/"
+  regular_opening_hours {
+    open_now: false
+    periods {
+      open_ {
+        day: 0
+        hour: 8
+        minute: 30
+      }
+      close {
+        day: 0
+        hour: 17
+        minute: 30
+      }
+    }
+    periods {
+      open_ {
+        day: 1
+        hour: 8
+        minute: 30
+      }
+      close {
+        day: 1
+        hour: 17
+        minute: 30
+      }
+    }
+    periods {
+      open_ {
+        day: 2
+        hour: 8
+        minute: 30
+      }
+      close {
+        day: 3
+        hour: 0
+        minute: 0
+      }
+    }
+    periods {
+      open_ {
+        day: 3
+        hour: 8
+        minute: 30
+      }
+      close {
+        day: 3
+        hour: 17
+        minute: 30
+      }
+    }
+    periods {
+      open_ {
+        day: 4
+        hour: 8
+        minute: 30
+      }
+      close {
+        day: 4
+        hour: 17
+        minute: 30
+      }
+    }
+    periods {
+      open_ {
+        day: 5
+        hour: 8
+        minute: 30
+      }
+      close {
+        day: 5
+        hour: 17
+        minute: 30
+      }
+    }
+    periods {
+      open_ {
+        day: 6
+        hour: 8
+        minute: 30
+      }
+      close {
+        day: 6
+        hour: 17
+        minute: 30
+      }
+    }
+    weekday_descriptions: "Monday: 8:30 AM – 5:30 PM"
+    weekday_descriptions: "Tuesday: 8:30 AM – 12:00 AM"
+    weekday_descriptions: "Wednesday: 8:30 AM – 5:30 PM"
+    weekday_descriptions: "Thursday: 8:30 AM – 5:30 PM"
+    weekday_descriptions: "Friday: 8:30 AM – 5:30 PM"
+    weekday_descriptions: "Saturday: 8:30 AM – 5:30 PM"
+    weekday_descriptions: "Sunday: 8:30 AM – 5:30 PM"
+    next_open_time {
+      seconds: 1779435000
+    }
+  }
+  utc_offset_minutes: 60
+  adr_format_address: "Bluebell Railway - (Sheffield Park, Station), <span class=\"street-address\">Station Approach</span>, <span class=\"locality\">Uckfield</span> <span class=\"postal-code\">TN22 3QL</span>, <span class=\"country-name\">UK</span>"
+  business_status: OPERATIONAL
+  user_rating_count: 37
+  icon_mask_base_uri: "https://maps.gstatic.com/mapfiles/place_api/icons/v2/restaurant_pinlet"
+  icon_background_color: "#FF9E67"
+  display_name {
+    text: "The Bessemer Arms"
+    language_code: "en"
+  }
+  primary_type_display_name {
+    text: "Buffet Restaurant"
+    language_code: "en-US"
+  }
+  takeout: false
+  delivery: false
+  dine_in: true
+  reservable: true
+  serves_breakfast: true
+  serves_lunch: true
+  serves_dinner: true
+  serves_beer: true
+  serves_wine: true
+  serves_brunch: true
+  serves_vegetarian_food: true
+  current_opening_hours {
+    open_now: false
+    periods {
+      open_ {
+        day: 0
+        hour: 8
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 24
+        }
+      }
+      close {
+        day: 0
+        hour: 17
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 24
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 1
+        hour: 8
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 25
+        }
+      }
+      close {
+        day: 1
+        hour: 17
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 25
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 2
+        hour: 8
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 26
+        }
+      }
+      close {
+        day: 3
+        hour: 0
+        minute: 0
+        date {
+          year: 2026
+          month: 5
+          day: 27
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 3
+        hour: 8
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 27
+        }
+      }
+      close {
+        day: 3
+        hour: 17
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 27
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 4
+        hour: 8
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 28
+        }
+      }
+      close {
+        day: 4
+        hour: 17
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 28
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 5
+        hour: 8
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 22
+        }
+      }
+      close {
+        day: 5
+        hour: 17
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 22
+        }
+      }
+    }
+    periods {
+      open_ {
+        day: 6
+        hour: 8
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 23
+        }
+      }
+      close {
+        day: 6
+        hour: 17
+        minute: 30
+        date {
+          year: 2026
+          month: 5
+          day: 23
+        }
+      }
+    }
+    weekday_descriptions: "Monday: 8:30 AM – 5:30 PM"
+    weekday_descriptions: "Tuesday: 8:30 AM – 12:00 AM"
+    weekday_descriptions: "Wednesday: 8:30 AM – 5:30 PM"
+    weekday_descriptions: "Thursday: 8:30 AM – 5:30 PM"
+    weekday_descriptions: "Friday: 8:30 AM – 5:30 PM"
+    weekday_descriptions: "Saturday: 8:30 AM – 5:30 PM"
+    weekday_descriptions: "Sunday: 8:30 AM – 5:30 PM"
+    next_open_time {
+      seconds: 1779435000
+    }
+  }
+  primary_type: "buffet_restaurant"
+  short_formatted_address: "Bluebell Railway - (Sheffield Park, Station), Sheffield Park, Station Approach, Uckfield"
+  outdoor_seating: true
+  menu_for_children: true
+  serves_dessert: true
+  serves_coffee: true
+  good_for_children: true
+  allows_dogs: true
+  restroom: true
+  good_for_groups: true
+  payment_options {
+    accepts_credit_cards: true
+    accepts_debit_cards: true
+    accepts_cash_only: false
+    accepts_nfc: true
+  }
+  parking_options {
+    free_parking_lot: true
+  }
+  accessibility_options {
+    wheelchair_accessible_parking: true
+    wheelchair_accessible_entrance: true
+    wheelchair_accessible_restroom: true
+    wheelchair_accessible_seating: true
+  }
+  containing_places {
+    name: "places/ChIJq5z5IB5g30cRcQK65cb-VJ0"
+    id: "ChIJq5z5IB5g30cRcQK65cb-VJ0"
+  }
+  address_descriptor {
+    landmarks {
+      name: "places/ChIJq5z5IB5g30cRcQK65cb-VJ0"
+      place_id: "ChIJq5z5IB5g30cRcQK65cb-VJ0"
+      display_name {
+        text: "Bluebell Railway - (Sheffield Park, Station)"
+        language_code: "en"
+      }
+      types: "establishment"
+      types: "food"
+      types: "museum"
+      types: "point_of_interest"
+      types: "restaurant"
+      types: "tourist_attraction"
+      straight_line_distance_meters: 45.681179
+    }
+    landmarks {
+      name: "places/ChIJW7BUwaCKdUgREXPCIMnY2Fw"
+      place_id: "ChIJW7BUwaCKdUgREXPCIMnY2Fw"
+      display_name {
+        text: "Sheffield Park"
+        language_code: "en"
+      }
+      types: "establishment"
+      types: "point_of_interest"
+      types: "train_station"
+      types: "transit_station"
+      straight_line_distance_meters: 45.125824
+    }
+    landmarks {
+      name: "places/ChIJ-WZW76CKdUgRltlsl-Jgn4E"
+      place_id: "ChIJ-WZW76CKdUgRltlsl-Jgn4E"
+      display_name {
+        text: "Everyday Brew Co. - Taproom - Pizza - Coffee Roasters - Cafe"
+        language_code: "en"
+      }
+      types: "bar"
+      types: "establishment"
+      types: "food"
+      types: "liquor_store"
+      types: "point_of_interest"
+      types: "restaurant"
+      types: "store"
+      straight_line_distance_meters: 107.426735
+    }
+    landmarks {
+      name: "places/ChIJv7Uftx9g30cRgLEznMluOUA"
+      place_id: "ChIJv7Uftx9g30cRgLEznMluOUA"
+      display_name {
+        text: "Ouse Meadow Campsite"
+        language_code: "en"
+      }
+      types: "campground"
+      types: "establishment"
+      types: "lodging"
+      types: "point_of_interest"
+      straight_line_distance_meters: 198.372528
+    }
+    landmarks {
+      name: "places/ChIJjy0gx6CKdUgRhDWbALHeF0k"
+      place_id: "ChIJjy0gx6CKdUgRhDWbALHeF0k"
+      display_name {
+        text: "Bluebell Railway Museum"
+        language_code: "en"
+      }
+      types: "establishment"
+      types: "museum"
+      types: "point_of_interest"
+      straight_line_distance_meters: 90.5567322
+    }
+    areas {
+      name: "places/ChIJs1v67aCKdUgR6jZQTv0IvpI"
+      place_id: "ChIJs1v67aCKdUgR6jZQTv0IvpI"
+      display_name {
+        text: "Sheffield Park"
+        language_code: "en"
+      }
+      containment: WITHIN
+    }
+    areas {
+      name: "places/ChIJEVSf36CKdUgRHz-46xRiVLg"
+      place_id: "ChIJEVSf36CKdUgRHz-46xRiVLg"
+      display_name {
+        text: "Bluebell Business Estate"
+        language_code: "und"
+      }
+      containment: NEAR
+    }
+  }
+  google_maps_links {
+    directions_uri: "https://www.google.com/maps/dir//\'\'/data=!4m7!4m6!1m1!4e2!1m2!1m1!1s0x48758b098e2eba0d:0x4c85b743d14fde15!3e0?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    place_uri: "https://maps.google.com/?cid=5514014820687404565&g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    write_a_review_uri: "https://www.google.com/maps/place//data=!4m3!3m2!1s0x48758b098e2eba0d:0x4c85b743d14fde15!12e1?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    reviews_uri: "https://www.google.com/maps/place//data=!4m4!3m3!1s0x48758b098e2eba0d:0x4c85b743d14fde15!9m1!1b1?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+    photos_uri: "https://www.google.com/maps/place//data=!4m3!3m2!1s0x48758b098e2eba0d:0x4c85b743d14fde15!10e5?g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA"
+  }
+  price_range {
+    start_price {
+      currency_code: "GBP"
+      units: 10
+    }
+    end_price {
+      currency_code: "GBP"
+      units: 20
+    }
+  }
+  time_zone {
+    id: "Europe/London"
+  }
+  postal_address {
+    region_code: "GB"
+    language_code: "en-US"
+    postal_code: "TN22 3QL"
+    locality: "Uckfield"
+    address_lines: "Bluebell Railway - (Sheffield Park, Station)"
+    address_lines: "Station Approach"
+  }
+  google_maps_type_label {
+    text: "Buffet Restaurant"
+    language_code: "en-US"
+  }
+}
+
