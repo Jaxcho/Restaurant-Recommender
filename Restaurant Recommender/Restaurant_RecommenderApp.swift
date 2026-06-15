@@ -9,10 +9,12 @@ import SwiftUI
 
 @main
 struct Restaurant_RecommenderApp: App {
+    
+    @State private var authManager = AuthManager(apiClient: APIClient(baseURL: AppEnvironment.apiBaseURL))
+    
     var body: some Scene {
         WindowGroup {
-            
-            LoginView()
+            RootView().environment(authManager)
         }
     }
 }

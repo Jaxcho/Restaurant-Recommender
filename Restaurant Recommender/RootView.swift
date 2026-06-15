@@ -8,12 +8,22 @@
 import SwiftUI
 
 struct RootView: View {
+    @Environment(AuthManager.self) private var authManager
 
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-            .onAppear{
-                print("Appear")
+        Group {
+            if authManager.isBootstrapping {
+                ProgressView()
+            } else if authManager.isAuthenticated {
+                Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+                    .onAppear{
+                        print("Appear")
+                    }
+            } else {
+                LoginView()
             }
+        }
+        
     }
 }
 

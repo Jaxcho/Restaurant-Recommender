@@ -28,7 +28,7 @@ async def find_restaurants(user_information: UserInformation, response: Response
 async def root():
     return {"message": "Welcome to FastAPI Authentication Demo"}
 
-@app.post("/refresh")
+@app.post("/auth/refresh")
 async def refresh_token(response: Response, request: Request,  db: Session = Depends(get_db)):
     """Authenticate user and return access token."""
     
@@ -49,7 +49,7 @@ async def refresh_token(response: Response, request: Request,  db: Session = Dep
     refresh_token = create_access_token(data={"sub": username}, expires_delta=timedelta(minutes=10080))
     response.set_cookie(key = "refresh_token", path = "/", httponly = True, secure = True, value = refresh_token)
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token}
 
 
 
@@ -89,7 +89,7 @@ def create_user(response: Response, user: UserCreate, db: Session = Depends(get_
     refresh_token = create_access_token(data={"sub": db_user.username}, expires_delta=timedelta(minutes=10080))
     response.set_cookie(key = "refresh_token", path = "/", httponly = True, secure = True, value = refresh_token)
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token }
 
 
 @app.post("/auth/login")
@@ -108,7 +108,7 @@ def login_user(user: UserForm, response: Response, db: Session = Depends(get_db)
     refresh_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=10080))
     response.set_cookie(key = "refresh_token", path = "/", httponly = True, secure = True, value = refresh_token)
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "refresh_token" : refresh_token}
 
 
 
