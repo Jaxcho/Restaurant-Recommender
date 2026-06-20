@@ -15,10 +15,7 @@ struct RootView: View {
             if authManager.isBootstrapping {
                 ProgressView()
             } else if authManager.isAuthenticated {
-                Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-                    .onAppear{
-                        print("Appear")
-                    }
+                PostLoginView()
             } else {
                 LoginView()
             }
