@@ -7,11 +7,6 @@
 
 import SwiftUI
 
-private struct LoginRequest: Encodable {
-    let username: String;
-    let password: String;
-}
-
 struct LoginView: View {
     @Environment(AuthManager.self) private var authManager
     

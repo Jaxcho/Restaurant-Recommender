@@ -12,8 +12,8 @@ class UserInDB(User):
 
 class UserCreate(BaseModel):
     username: str
-    email: str
-    full_name: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
     password: str
 
 class UserForm(BaseModel):
