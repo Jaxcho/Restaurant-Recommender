@@ -3,6 +3,9 @@
 //  Restaurant Recommender
 //
 //  Created by Jax Choi on 5/17/26.
+
+//alice
+//secret123
 //
 
 import SwiftUI

@@ -8,43 +8,110 @@ import SwiftUI
 import CoreLocation
 import Combine
 
-@MainActor
-class Location: ObservableObject {
+final class LocationManager: NSObject, CLLocationManagerDelegate, ObservableObject {
     
-    @Published var location: CLLocation?
+    @Published var lastKnownLocation: CLLocationCoordinate2D?
+    var manager = CLLocationManager()
     
-    func startUpdating() async{
-        let updates = CLLocationUpdate.liveUpdates()
-        do{
-            for try await update in updates{
-                if let newLocation = update.location{
-                    self.location = newLocation
-                }
-            }
-        }
+    
+    func checkLocationAuthorization() {
         
-        catch{
-            print("Location failed: \(error)")
-        }
+        manager.delegate = self
+        manager.startUpdatingLocation()
+//        manager.requestWhenInUseAuthorization()
+//        print("checking")
         
+        switch manager.authorizationStatus {
+        case .notDetermined://The user choose allow or denny your app to get the location yet
+            manager.requestWhenInUseAuthorization()
+            
+        case .restricted://The user cannot change this app’s status, possibly due to active restrictions such as parental controls being in place.
+            print("Location restricted")
+            
+        case .denied://The user dennied your app to get location or disabled the services location or the phone is in airplane mode
+            print("Location denied")
+            
+        case .authorizedAlways://This authorization allows you to use all location services and receive location events whether or not your app is in use.
+            print("Location authorizedAlways")
+            
+        case .authorizedWhenInUse://This authorization allows you to use all location services and receive location events only when your app is in use
+            print("Location authorized when in use")
+            lastKnownLocation = manager.location?.coordinate
+            
+        @unknown default:
+            print("Location service disabled")
+        
+        }
+    }
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {//Trigged every time authorization status changes
+        checkLocationAuthorization()
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        lastKnownLocation = locations.first?.coordinate
     }
 }
+//
+//@MainActor
+//class Location: ObservableObject {
+//    
+//    @Published var location: CLLocation?
+//    
+//    func startUpdating() async{
+//        let updates = CLLocationUpdate.liveUpdates()
+//        do{
+//            for try await update in updates{
+//                if let newLocation = update.location{
+//                    self.location = newLocation
+//                }
+//            }
+//        }
+//        
+//        catch{
+//            print("Location failed: \(error)")
+//        }
+//        
+//    }
+//}
 
 struct LocationView: View {
-    @StateObject private var Loc = Location()
-    
-    var body: some View {
-        VStack (spacing: 16) {
-            if let location = Loc.location {
-                Text("Latitude: \(location.coordinate.latitude)")
-                Text("Longitude: \(location.coordinate.longitude)")
-            } else {
-                Text("Fetching location...")
+    @StateObject private var locationManager = LocationManager()
+        
+        var body: some View {
+            VStack {
+                if let coordinate = locationManager.lastKnownLocation {
+                    Text("Latitude: \(coordinate.latitude)")
+                    
+                    Text("Longitude: \(coordinate.longitude)")
+                } else {
+                    Text("Unknown Location")
+                }
+                
+                
+                Button("Get location") {
+                    locationManager.checkLocationAuthorization()
+                }
+                .buttonStyle(.borderedProminent)
             }
-        }
-        .task {
-            await Loc.startUpdating()
+            .padding()
         }
     }
-}
 
+//    @StateObject private var Loc = Location()
+//    
+//    var body: some View {
+//        VStack (spacing: 16) {
+//            if let location = Loc.location {
+//                Text("Latitude: \(location.coordinate.latitude)")
+//                Text("Longitude: \(location.coordinate.longitude)")
+//            } else {
+//                Text("Fetching location...")
+//            }
+//        }
+//        .task {
+//            await Loc.startUpdating()
+//        }
+//    }
+//}
+//

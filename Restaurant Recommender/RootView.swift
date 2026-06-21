@@ -17,7 +17,7 @@ struct RootView: View {
             } else if authManager.isAuthenticated {
                 PostLoginView()
             } else {
-                LoginView()
+                UnauthenticatedView()
             }
         }
         

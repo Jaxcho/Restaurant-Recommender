@@ -9,11 +9,16 @@ import SwiftUI
 struct PostLoginView: View {
     
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Welcome!")
-                .font(.title)
+        NavigationView {
+            VStack(spacing: 16) {
+                Text("Welcome!")
+                    .font(.title)
+                NavigationLink(destination: LocationView()) {
+                    Text("Go to locations")
+                }
+            }
+            .padding()
         }
-        .padding()
     }
 }
 

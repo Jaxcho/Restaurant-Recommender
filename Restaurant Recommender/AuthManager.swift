@@ -41,7 +41,7 @@ final class AuthManager{
         defer { isBootstrapping = false }
         guard tokenStore.refreshToken != nil else { return }
         do {
-            let user: UserDTO = try await apiClient.send(.me)
+            let _: UserDTO = try await apiClient.send(.me)
             state =  .loggedIn
         } catch {
             state = .loggedOut

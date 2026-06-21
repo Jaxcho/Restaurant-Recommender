@@ -7,7 +7,7 @@
 
 import Foundation
 
-private let coderSchool: Int = 34;
+private let coderSchool: Int = 44;
 
 enum AppEnvironment {
     #if targetEnvironment(simulator)
