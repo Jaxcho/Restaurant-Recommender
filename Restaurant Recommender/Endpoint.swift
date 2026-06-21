@@ -40,6 +40,15 @@ extension Endpoint {
         )
     }
 
+    nonisolated static func register(username: String, password: String) throws -> Endpoint {
+        Endpoint(
+            path: "auth/register",
+            method: .post,
+            body: try JSONEncoder.api.encode(UsernamePasswordPayload(username: username, password: password)),
+            requiresAuth: false
+        )
+    }
+    
     nonisolated static func refresh(refreshToken: String) throws -> Endpoint {
         Endpoint(
             path: "auth/refresh",
@@ -57,7 +66,8 @@ extension Endpoint {
             requiresAuth: false
         )
     }
-
+    
+    
     nonisolated static let me = Endpoint(path: "users/me", method: .get)
 
 }
