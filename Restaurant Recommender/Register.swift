@@ -31,6 +31,7 @@ struct RegisterView: View {
     
     var body: some View {
         VStack(spacing: 10) {
+            
             TextField("Username", text: $username)
             TextField("Password", text: $password)
             Button("Register", action: register)

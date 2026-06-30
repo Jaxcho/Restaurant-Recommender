@@ -9,7 +9,8 @@ import CoreLocation
 import Combine
 
 final class LocationManager: NSObject, CLLocationManagerDelegate, ObservableObject {
-    
+
+
     @Published var lastKnownLocation: CLLocationCoordinate2D?
     var manager = CLLocationManager()
     
@@ -50,6 +51,7 @@ final class LocationManager: NSObject, CLLocationManagerDelegate, ObservableObje
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         lastKnownLocation = locations.first?.coordinate
+        
     }
 }
 //
@@ -77,23 +79,67 @@ final class LocationManager: NSObject, CLLocationManagerDelegate, ObservableObje
 
 struct LocationView: View {
     @StateObject private var locationManager = LocationManager()
-        
+    @Environment(FunctionManager.self) private var functionManager
+    @State private var latitude : Double
+    @State private var longitude : Double
+    @State private var errorMessage: String?
+    @State private var radius: Int
+    @State private var time: Date
+    @State private var isSubmitting: Bool = false
+    @State private var locations: Array<FoundLocationsDTO> = [];
+    
+    
+    func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Int, _ time: Date){
+        isSubmitting = true
+        Task {
+            defer {
+                isSubmitting = false
+            }
+            do {
+                locations = try await functionManager.location(lat: latitude, lng: longitude, radius: radius, time: time)
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+            }
+        }
+    }
+    
+    
         var body: some View {
             VStack {
-                if let coordinate = locationManager.lastKnownLocation {
-                    Text("Latitude: \(coordinate.latitude)")
-                    
-                    Text("Longitude: \(coordinate.longitude)")
-                } else {
-                    Text("Unknown Location")
+                List(locations) { location in
+                    Text(location.name)
                 }
+//                if let coordinate = locationManager.lastKnownLocation {
+//                    Text("Latitude: \(coordinate.latitude)")
+//                    
+//                    Text("Longitude: \(coordinate.longitude)")
+//                    
+//                    Text("Radius" \(coordinate.radius))
+//                    
+//                    Text("Time" \(coordinate.time))
+//                } else {
+//                    Text("Unknown Location")
+//                    
+//                }
                 
                 
                 Button("Get location") {
                     locationManager.checkLocationAuthorization()
+                    if let coordinate = locationManager.lastKnownLocation {
+                        latitude = coordinate.latitude;
+                        longitude = coordinate.longitude;
+                        radius = 1;
+                        time = Date();
+                    }
                 }
                 .buttonStyle(.borderedProminent)
+                Button("Send Location") {
+                    sendLocation(latitude, longitude, radius, time)
+                }
+                    
+                
             }
+            
             .padding()
         }
     }
