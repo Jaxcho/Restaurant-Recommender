@@ -9,7 +9,7 @@
 
 import Foundation
 
-// MARK: - Responses
+// MARK: - Responses : Response from BackEnd
 
 nonisolated struct UserDTO: Decodable {
 //    let id: UUID
@@ -29,8 +29,13 @@ nonisolated struct AuthResponseDTO: Decodable {
 //    let user: UserDTO
 }
 
+nonisolated struct FoundLocationsDTO: Decodable, Identifiable {
+    let id: String
+    let name: String
+}
 
-// MARK: - Request payloads
+
+// MARK: - Request payloads : Body of Request
 
 nonisolated struct UsernamePasswordPayload: Encodable {
     let username: String
@@ -40,3 +45,11 @@ nonisolated struct UsernamePasswordPayload: Encodable {
 nonisolated struct RefreshTokenPayload: Encodable {
     let refreshToken: String
 }
+
+nonisolated struct CoordinatesPayload: Encodable {
+    let lat: Double
+    let lng: Double
+    let radius: Int
+    let time : Date
+}
+
