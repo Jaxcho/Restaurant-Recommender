@@ -1,5 +1,21 @@
 services:
 
+  # ── FastAPI backend ──────────────────────────────────────────────────────────
+  api:
+    build: .                          # uses the Dockerfile in this directory
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Point the app at the "db" service instead of localhost
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/${POSTGRES_DB:-app}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    networks:
+      - backend
+
   # ── PostgreSQL ───────────────────────────────────────────────────────────────
   db:
     # build: .                          # uses the Dockerfile in this directory
