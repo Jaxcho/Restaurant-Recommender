@@ -9,12 +9,16 @@ import SwiftUI
 
 struct UnauthenticatedView: View {
     var body: some View {
-        Text("Hello, World!")
-        NavigationLink(destination: RegisterView()) {
-            Text("Register")
-        }
-        NavigationLink(destination: LoginView()) {
-            Text("Login")
+        NavigationStack {
+            VStack(spacing: 16) {
+                Text("Hello, World!")
+                NavigationLink(destination: RegisterView()) {
+                    Text("Register")
+                }
+                NavigationLink(destination: LoginView()) {
+                    Text("Login")
+                }
+            }
         }
     }
 }

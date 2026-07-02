@@ -6,9 +6,19 @@
 import Foundation
 import Security
 
-nonisolated enum KeychainError: Error {
+nonisolated enum KeychainError: Error, LocalizedError {
     case encodingFailed
     case unexpectedStatus(OSStatus)
+
+    var errorDescription: String? {
+        switch self {
+        case .encodingFailed:
+            return "Couldn't encode the value for Keychain storage."
+        case let .unexpectedStatus(status):
+            let message = SecCopyErrorMessageString(status, nil) as String? ?? "unknown error"
+            return "Keychain error \(status): \(message)"
+        }
+    }
 }
 
 /// Thin wrapper around the Keychain Services API for storing small string

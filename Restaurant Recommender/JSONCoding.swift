@@ -52,6 +52,10 @@ extension JSONEncoder {
     nonisolated static let api: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            try container.encode(APIDateCoding.withFractionalSeconds.string(from: date))
+        }
         return encoder
     }()
 }

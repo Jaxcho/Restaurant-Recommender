@@ -80,11 +80,11 @@ final class LocationManager: NSObject, CLLocationManagerDelegate, ObservableObje
 struct LocationView: View {
     @StateObject private var locationManager = LocationManager()
     @Environment(FunctionManager.self) private var functionManager
-    @State private var latitude : Double
-    @State private var longitude : Double
+    @State private var latitude: Double = 0
+    @State private var longitude: Double = 0
     @State private var errorMessage: String?
-    @State private var radius: Int
-    @State private var time: Date
+    @State private var radius: Int = 1
+    @State private var time: Date = Date()
     @State private var isSubmitting: Bool = false
     @State private var locations: Array<FoundLocationsDTO> = [];
     

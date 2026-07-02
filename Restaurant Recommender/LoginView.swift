@@ -75,7 +75,10 @@ struct LoginView: View {
         TextField("Username", text: $username)
         TextField("Password", text: $password)
         Button("Submit", action: login)
-        Text("Hello, World!")
+        if !errorMessage.isEmpty {
+            Text(errorMessage)
+                .foregroundColor(.red)
+        }
     }
 }
 
