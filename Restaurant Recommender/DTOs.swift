@@ -34,8 +34,13 @@ nonisolated struct FoundLocationsDTO: Decodable, Identifiable {
     let name: String
 }
 
+nonisolated struct RestaurantDTO: Decodable{
+    let reviewSummary: String
+}
+
 
 // MARK: - Request payloads : Body of Request
+
 
 nonisolated struct UsernamePasswordPayload: Encodable {
     let username: String

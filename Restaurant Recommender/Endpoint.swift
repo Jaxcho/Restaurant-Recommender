@@ -76,6 +76,15 @@ extension Endpoint {
         )
     }
     
+    nonisolated static func restaurantDetails(restaurant: String) throws -> Endpoint {
+        Endpoint(
+            path: "/restaurant_details/\(restaurant)",
+            method: .get,
+            body: nil,
+            requiresAuth: false
+        )
+    }
+    
     
     nonisolated static let me = Endpoint(path: "users/me", method: .get)
 

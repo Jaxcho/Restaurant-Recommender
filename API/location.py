@@ -33,20 +33,26 @@ def jsonify(data):
   return response
 
 
-async def place_details():
+async def place_details(restaurant_id):
+  final = []
   client = places_v1.PlacesAsyncClient(client_options={"api_key": "AIzaSyDlTtqGqM5cy9S8AeK5mtX5UgBxWIFeoDE"})
   # Build the request
   # request = places_v1.GetPlaceRequest(
   #     name="places/ChIJaXQRs6lZwokRY6EFpJnhNNE",
   # )
-  request = places_v1.SearchNearbyRequest(
-      mapping = None, 
+  request = places_v1.GetPlaceRequest(
+      name = f"places/{restaurant_id}", 
   )
   # Set the field mask
   # fieldMask = "formattedAddress,displayName"
-  fieldMask = "reviewSummary,regularOpeningHours,rating,priceRange"
+  fieldMask = "reviewSummary"
   # Make the request
   response = await client.get_place(request=request, metadata=[("x-goog-fieldmask",fieldMask)])
+  review_summary = response.review_summary.text.text
+  # print(review_summary)
+  return { "reviewSummary": review_summary }
+  # for val in response.places:
+  #     final.append({id})
   return response
 
 # print("Hello 1 from Location.py")

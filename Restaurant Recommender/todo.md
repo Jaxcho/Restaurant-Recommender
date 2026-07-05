@@ -1,4 +1,4 @@
 # TODOs
 
-Fix location bc it gets the wrong one
-Add the user permission for location
+Under each restaurant, have an arrow dropdow that gives you info based on the restaurant. 
+Payload, DTO, endpoint, function manager setup, backend setup.

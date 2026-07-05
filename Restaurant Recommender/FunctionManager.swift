@@ -36,7 +36,12 @@ final class FunctionManager{
         let response: Array<FoundLocationsDTO>  = try await apiClient.send(try .findRestaurants(lat: lat, lng: lng, radius: radius, time: time))
         return response
     }
-//    
+    
+    func restaurantInfo(restaurant_id: String) async throws -> RestaurantDTO {
+        let response: RestaurantDTO  = try await apiClient.send(try .restaurantDetails(restaurant: restaurant_id))
+        return response
+    }
+//
 //    func location() async {
 //        if let refreshToken = tokenStore.refreshToken, let endpoint = try? Endpoint.logout(refreshToken: refreshToken) {
 //            try? await apiClient.send(endpoint)

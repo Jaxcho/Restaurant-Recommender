@@ -55,6 +55,30 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
     }
 }
 
+struct ModalContentView: View {
+    let restaurantReview: String
+    let restaurantName: String
+    // Environment property to dismiss the view programmatically
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(restaurantReview)
+                .font(.title)
+                .bold()
+            
+            Text("Swipe down to dismiss or tap the button below.")
+                .multilineTextAlignment(.center)
+            
+            Button("Dismiss") {
+                dismiss()
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding()
+    }
+}
+
 struct LocationView: View {
     @State private var camera: MapCameraPosition = .camera(MapCamera(centerCoordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), distance: 500))
     @State private var locationManager = LocationModel()
@@ -66,6 +90,8 @@ struct LocationView: View {
     @State private var time: Date = Date()
     @State private var isSubmitting: Bool = false
     @State private var locations: Array<FoundLocationsDTO> = [];
+    @State private var restaurantReview: String = ""
+    @State private var showModal = false
     
     
     func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Int, _ time: Date){
@@ -76,6 +102,21 @@ struct LocationView: View {
             }
             do {
                 locations = try await functionManager.location(lat: latitude, lng: longitude, radius: radius, time: time)
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+            }
+        }
+    }
+    
+    func restaurantData(restaurant_id: String){
+        isSubmitting = true
+        Task {
+            defer {
+                isSubmitting = false
+            }
+            do {
+                restaurantReview = try await functionManager.restaurantInfo(restaurant_id: restaurant_id).reviewSummary
+                showModal = true
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
             }
@@ -101,7 +142,16 @@ struct LocationView: View {
                 }
             }
                 List(locations) { location in
-                    Text(location.name)
+                    HStack {
+                        Text(location.name)
+                        Button(">") {
+                            restaurantData(restaurant_id: location.id)
+                        }
+                    }
+                    .sheet(isPresented: $showModal) {
+                        ModalContentView(restaurantReview: restaurantReview, restaurantName: location.name)
+                    }
+
                 }
                 
                 Button("Get location") {
@@ -121,6 +171,7 @@ struct LocationView: View {
                 .buttonStyle(.borderedProminent)
                 Button("Send Location") {
                     sendLocation(latitude, longitude, radius, time)
+                    
                 }
                 
                 
