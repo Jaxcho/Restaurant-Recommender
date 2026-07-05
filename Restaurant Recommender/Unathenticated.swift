@@ -11,14 +11,25 @@ struct UnauthenticatedView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Text("Hello, World!")
-                NavigationLink(destination: RegisterView()) {
-                    Text("Register")
-                }
-                NavigationLink(destination: LoginView()) {
-                    Text("Login")
-                }
+                Text("Restaurant Radar")
+                    .toolbar {
+                        
+                            ToolbarItem(placement: .topBarLeading) {
+                                HStack{
+                                NavigationLink(destination: RegisterView()) {
+                                    Text("Register")
+                                }
+                                NavigationLink(destination: LoginView()) {
+                                    Text("Login")
+                                }
+                            }
+                        }
+                    }
             }
         }
     }
+}
+
+#Preview {
+    UnauthenticatedView()
 }

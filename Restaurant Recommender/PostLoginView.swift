@@ -7,10 +7,26 @@
 import SwiftUI
 
 struct PostLoginView: View {
+    @Environment(AuthManager.self) private var authManager
+    @State private var errorMessage: String? = nil
+    
+    func logout(){
+        Task {
+            defer {
+              
+            }
+            
+            await authManager.logout()
+           
+        }
+    }
     
     var body: some View {
         NavigationView {
             VStack(spacing: 16) {
+                Button("Logout"){
+                    logout()
+                }
                 Text("Welcome!")
                     .font(.title)
                 NavigationLink(destination: LocationView()) {

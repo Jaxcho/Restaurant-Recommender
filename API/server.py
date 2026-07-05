@@ -115,7 +115,10 @@ def login_user(user: UserForm, response: Response, db: Session = Depends(get_db)
 
     return {"access_token": access_token, "token_type": "bearer", "refresh_token" : refresh_token}
 
-
+@app.post("/auth/logout")
+def logout():
+    refresh_token = create_access_token(data={"sub":""}, expires_delta=timedelta(minutes=0))
+    return {"refresh_token" : refresh_token}
 
 
 
