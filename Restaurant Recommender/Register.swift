@@ -12,11 +12,12 @@ struct RegisterView: View {
     @State private var username: String = "";
     @State private var password: String = "";
     @State private var isSubmitting: Bool = false;
-    @State private var errorMessage: String? = nil;
+    @State private var errorMessage: String = "";
     
     func register(){
         isSubmitting = true;
         if username == "" || password == "" {
+            isSubmitting = false
             return
         }
         Task {
@@ -33,8 +34,12 @@ struct RegisterView: View {
         VStack(spacing: 10) {
             
             TextField("Username", text: $username)
-            TextField("Password", text: $password)
-            Button("Register", action: register)
+            SecureField("Password", text: $password)
+            Button("Register", action: register).disabled(isSubmitting)
+            if !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+            }
         }
     }
 }

@@ -67,7 +67,7 @@ extension Endpoint {
         )
     }
     
-    nonisolated static func find_restaurants(lat: Double, lng: Double, radius: Int, time: Date) throws -> Endpoint {
+    nonisolated static func findRestaurants(lat: Double, lng: Double, radius: Int, time: Date) throws -> Endpoint {
         Endpoint(
             path: "/find_restaurants",
             method: .post,

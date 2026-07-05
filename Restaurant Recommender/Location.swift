@@ -6,13 +6,13 @@
 //
 import SwiftUI
 import CoreLocation
-import Combine
+import MapKit
 
-final class LocationManager: NSObject, CLLocationManagerDelegate, ObservableObject {
+final class LocationModel: NSObject, CLLocationManagerDelegate {
 
-
-    @Published var lastKnownLocation: CLLocationCoordinate2D?
-    var manager = CLLocationManager()
+    
+    private(set) var lastKnownLocation: CLLocationCoordinate2D?
+    private let manager = CLLocationManager()
     
     
     func checkLocationAuthorization() {
@@ -54,31 +54,10 @@ final class LocationManager: NSObject, CLLocationManagerDelegate, ObservableObje
         
     }
 }
-//
-//@MainActor
-//class Location: ObservableObject {
-//    
-//    @Published var location: CLLocation?
-//    
-//    func startUpdating() async{
-//        let updates = CLLocationUpdate.liveUpdates()
-//        do{
-//            for try await update in updates{
-//                if let newLocation = update.location{
-//                    self.location = newLocation
-//                }
-//            }
-//        }
-//        
-//        catch{
-//            print("Location failed: \(error)")
-//        }
-//        
-//    }
-//}
 
 struct LocationView: View {
-    @StateObject private var locationManager = LocationManager()
+    @State private var camera: MapCameraPosition = .camera(MapCamera(centerCoordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), distance: 500))
+    @State private var locationManager = LocationModel()
     @Environment(FunctionManager.self) private var functionManager
     @State private var latitude: Double = 0
     @State private var longitude: Double = 0
@@ -106,22 +85,24 @@ struct LocationView: View {
     
         var body: some View {
             VStack {
+                Map(position: $camera) {
+                    if let coordinate = locationManager.lastKnownLocation {
+                        Marker("You", coordinate: coordinate)
+                        }
+                    }.frame(height: 200)
+            Button("Zoom Out") {
+                if let cam = camera.camera {
+                    camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 2))
+                }
+            }
+            Button("Zoom In") {
+                if let cam = camera.camera {
+                    camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: max(cam.distance * 0.5, 100)))
+                }
+            }
                 List(locations) { location in
                     Text(location.name)
                 }
-//                if let coordinate = locationManager.lastKnownLocation {
-//                    Text("Latitude: \(coordinate.latitude)")
-//                    
-//                    Text("Longitude: \(coordinate.longitude)")
-//                    
-//                    Text("Radius" \(coordinate.radius))
-//                    
-//                    Text("Time" \(coordinate.time))
-//                } else {
-//                    Text("Unknown Location")
-//                    
-//                }
-                
                 
                 Button("Get location") {
                     locationManager.checkLocationAuthorization()
@@ -130,34 +111,21 @@ struct LocationView: View {
                         longitude = coordinate.longitude;
                         radius = 1;
                         time = Date();
+                        if let cam = camera.camera {
+                            camera = .camera(MapCamera(centerCoordinate: coordinate, distance: cam.distance))
+                        }
                     }
+                    
                 }
+                
                 .buttonStyle(.borderedProminent)
                 Button("Send Location") {
                     sendLocation(latitude, longitude, radius, time)
                 }
-                    
+                
                 
             }
             
             .padding()
         }
     }
-
-//    @StateObject private var Loc = Location()
-//    
-//    var body: some View {
-//        VStack (spacing: 16) {
-//            if let location = Loc.location {
-//                Text("Latitude: \(location.coordinate.latitude)")
-//                Text("Longitude: \(location.coordinate.longitude)")
-//            } else {
-//                Text("Fetching location...")
-//            }
-//        }
-//        .task {
-//            await Loc.startUpdating()
-//        }
-//    }
-//}
-//

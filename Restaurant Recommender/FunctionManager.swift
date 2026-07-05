@@ -33,7 +33,7 @@ final class FunctionManager{
 //        try applyAuthResponse(response)
 //    }
     func location(lat: Double, lng: Double, radius: Int, time: Date) async throws -> Array<FoundLocationsDTO> {
-        let response: Array<FoundLocationsDTO>  = try await apiClient.send(try .find_restaurants(lat: lat, lng: lng, radius: radius, time: time))
+        let response: Array<FoundLocationsDTO>  = try await apiClient.send(try .findRestaurants(lat: lat, lng: lng, radius: radius, time: time))
         return response
     }
 //    
