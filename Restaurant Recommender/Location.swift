@@ -97,7 +97,7 @@ struct LocationView: View {
             }
             Button("Zoom In") {
                 if let cam = camera.camera {
-                    camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: max(cam.distance * 0.5, 100)))
+                    camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 0.5))
                 }
             }
                 List(locations) { location in
