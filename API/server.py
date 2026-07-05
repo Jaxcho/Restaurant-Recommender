@@ -21,7 +21,6 @@ async def find_restaurants(user_information: UserInformation, response: Response
     lng = user_information.lng
     radius = user_information.radius*1609.344
     time = user_information.time
-    print(lat, lng)
     return await nearby_search(lat, lng, radius)
     
 @app.get("/")
