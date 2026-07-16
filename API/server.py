@@ -28,7 +28,7 @@ async def find_restaurants(user_information: UserInformation, response: Response
     print(lat, lng, radius)
     data = await nearby_search(lat, lng, radius)
     return data
-    
+     
 @app.get("/")
 async def root():
     return {"message": "Welcome to FastAPI Authentication Demo"}
