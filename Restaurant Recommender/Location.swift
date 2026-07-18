@@ -8,6 +8,9 @@ import SwiftUI
 import CoreLocation
 import MapKit
 
+@Observable
+@MainActor
+
 final class LocationModel: NSObject, CLLocationManagerDelegate {
 
     
@@ -95,6 +98,7 @@ struct LocationView: View {
     
     
     func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Int, _ time: Date){
+        errorMessage = nil
         isSubmitting = true
         Task {
             defer {
@@ -109,6 +113,7 @@ struct LocationView: View {
     }
     
     func restaurantData(restaurant_id: String){
+        errorMessage = nil
         isSubmitting = true
         Task {
             defer {
@@ -125,6 +130,10 @@ struct LocationView: View {
     
     
         var body: some View {
+            if let errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+            }
             VStack {
                 Map(position: $camera) {
                     if let coordinate = locationManager.lastKnownLocation {
@@ -146,7 +155,7 @@ struct LocationView: View {
                         Text(location.name)
                         Button(">") {
                             restaurantData(restaurant_id: location.id)
-                        }
+                        }.disabled(isSubmitting)
                     }
                     .sheet(isPresented: $showModal) {
                         ModalContentView(restaurantReview: restaurantReview, restaurantName: location.name)
@@ -172,7 +181,7 @@ struct LocationView: View {
                 Button("Send Location") {
                     sendLocation(latitude, longitude, radius, time)
                     
-                }
+                }.disabled(isSubmitting)
                 
                 
             }
