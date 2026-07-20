@@ -66,6 +66,8 @@ final class AuthManager{
     }
     
     
+    
+    
     private func applyAuthResponse(_ response: AuthResponseDTO) throws {
         try tokenStore.save(accessToken: response.accessToken, refreshToken: response.refreshToken)
         state = .loggedIn

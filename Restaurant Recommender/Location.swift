@@ -21,10 +21,7 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
     func checkLocationAuthorization() {
         
         manager.delegate = self
-        manager.startUpdatingLocation()
-//        manager.requestWhenInUseAuthorization()
-//        print("checking")
-        
+
         switch manager.authorizationStatus {
         case .notDetermined://The user choose allow or denny your app to get the location yet
             manager.requestWhenInUseAuthorization()
@@ -37,11 +34,13 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
             
         case .authorizedAlways://This authorization allows you to use all location services and receive location events whether or not your app is in use.
             print("Location authorizedAlways")
-            
+            manager.requestLocation()
+
         case .authorizedWhenInUse://This authorization allows you to use all location services and receive location events only when your app is in use
             print("Location authorized when in use")
             lastKnownLocation = manager.location?.coordinate
-            
+            manager.requestLocation()
+
         @unknown default:
             print("Location service disabled")
         
@@ -54,11 +53,17 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         lastKnownLocation = locations.first?.coordinate
-        
+
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Location failed: \(error.localizedDescription)")
     }
 }
 
 struct ModalContentView: View {
+    let location: Array<Double>
+    let hours: Array<OpeningHoursStruct>
     let restaurantReview: String
     let restaurantName: String
     // Environment property to dismiss the view programmatically
@@ -75,6 +80,12 @@ struct ModalContentView: View {
             
             Button("Dismiss") {
                 dismiss()
+            }
+            .buttonStyle(.bordered)
+            
+            Button("Mark Visited!") {
+                dismiss()
+//                TODO implement me
             }
             .buttonStyle(.bordered)
         }
@@ -95,7 +106,8 @@ struct LocationView: View {
     @State private var locations: Array<FoundLocationsDTO> = [];
     @State private var restaurantReview: String = ""
     @State private var showModal = false
-    
+    @State private var location: Array<Double>
+    @State private var hours: Array<OpeningHoursStruct>
     
     func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Int, _ time: Date){
         errorMessage = nil
@@ -120,7 +132,11 @@ struct LocationView: View {
                 isSubmitting = false
             }
             do {
-                restaurantReview = try await functionManager.restaurantInfo(restaurant_id: restaurant_id).reviewSummary
+                let restaurant = try await functionManager.restaurantInfo(restaurant_id: restaurant_id)
+                restaurantReview = restaurant.reviewSummary
+                hours = restaurant.currentOpeningHours
+                location = restaurant.location
+                
                 showModal = true
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
@@ -157,10 +173,6 @@ struct LocationView: View {
                             restaurantData(restaurant_id: location.id)
                         }.disabled(isSubmitting)
                     }
-                    .sheet(isPresented: $showModal) {
-                        ModalContentView(restaurantReview: restaurantReview, restaurantName: location.name)
-                    }
-
                 }
                 
                 Button("Get location") {
@@ -185,7 +197,10 @@ struct LocationView: View {
                 
                 
             }
-            
+
             .padding()
+            .sheet(isPresented: $showModal) {
+                ModalContentView(restaurantReview: restaurantReview, restaurantName: "")
+            }
         }
     }

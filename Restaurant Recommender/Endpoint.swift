@@ -72,7 +72,7 @@ extension Endpoint {
             path: "/find_restaurants",
             method: .post,
             body: try JSONEncoder.api.encode(CoordinatesPayload(lat: lat, lng: lng, radius: radius, time : time)),
-            requiresAuth: false
+            requiresAuth: true
         )
     }
     
@@ -81,10 +81,18 @@ extension Endpoint {
             path: "/restaurant_details/\(restaurant)",
             method: .get,
             body: nil,
-            requiresAuth: false
+            requiresAuth: true
         )
     }
     
+    nonisolated static func visitedRestaurant(restaurant_id: String, ) throws -> Endpoint {
+        Endpoint(
+            path: "/visited_restaurants/\(restaurant)",
+            method: .post,
+            body: nil,
+            requiresAuth: true
+        )
+    }
     
     nonisolated static let me = Endpoint(path: "users/me", method: .get)
 

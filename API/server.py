@@ -16,11 +16,11 @@ app = FastAPI(title="Authentication Demo", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 @app.get("/restaurant_details/{restaurant_id}")
-async def restaurant_details(restaurant_id: str):
+async def restaurant_details(restaurant_id: str, current_user: User = Depends(get_current_active_user)):
     return await place_details(restaurant_id)
 
 @app.post("/find_restaurants")
-async def find_restaurants(user_information: UserInformation, response: Response):
+async def find_restaurants(user_information: UserInformation, response: Response ,current_user: User = Depends(get_current_active_user)):
     lat = user_information.lat
     lng = user_information.lng
     radius = user_information.radius*1609.344

@@ -15,12 +15,20 @@ I'm learning Swift and app development. This project is instructor-guided, so
 some advanced patterns in the codebase (actor APIClient, single-flight
 refresh) were scaffolded FOR me — do not assume I fully own them yet.
 
-My current skill profile (last updated 2026-07-04):
+My current skill profile (last updated 2026-07-19):
 - Solid: overall architecture instincts, backend/auth concepts, willingness
-  to trace code. NEW: building new features by imitating existing patterns —
+  to trace code. Building new features by imitating existing patterns —
   RegisterView and FunctionManager were both built solo by pattern-matching
   AuthManager/LoginView, and the first authenticated feature endpoint
   (find_restaurants: Endpoint + DTO + manager + view) was wired without help.
+  NEW (2026-07-19): built the whole restaurant-details flow solo across both
+  layers (place_details + route + Endpoint + DTO + manager + sheet view), and
+  when given a review list, applied two fixes himself mid-session (snake_case
+  contract fix in place_details, auth Depends on /find_restaurants) before
+  the instructor could — applies feedback fast when the why is clear.
+- Prefers concise explanations over long teaching prose ("explain stuff more
+  simply, I'm not trying to read all that") — keep hints/reviews short and
+  concrete; and after one hint pass he may just ask for the changes directly.
 - Learning: SwiftUI fluency (views, forms, navigation), CoreLocation,
   @Observable vs ObservableObject — mid-migration, and currently being done
   as annotation-swapping rather than conceptually (see @State-in-class bug
@@ -61,7 +69,7 @@ My current skill profile (last updated 2026-07-04):
 6. Before edits that touch both frontend and backend, explicitly check the
    contract between them (field names, optionality, snake_case).
 
-## Current state / open tasks (as of 2026-07-04)
+## Current state / open tasks (as of 2026-07-19)
 - [x] NSLocationWhenInUseUsageDescription — added via INFOPLIST_KEY in the
       target build settings (project.pbxproj). Location work is unblocked.
 - [x] LoginView cleanup — isSubmitting early-return fixed, SecureField in,
@@ -70,23 +78,34 @@ My current skill profile (last updated 2026-07-04):
       test-credentials comment (alice/secret123) at the top of the file.
 - [x] RegisterView — built AND review pass done: early-return resets
       isSubmitting, SecureField, errorMessage rendered, .disabled wired.
-- [ ] Location.swift conversion — mostly done: @State-in-class bug fixed
-      (private(set) var + private let), renamed to LocationModel,
-      requestLocation() replaces continuous updates, dead code deleted.
-      Remaining: locationManager(_:didFailWithError:) is MISSING — required
-      by requestLocation(), app will crash at runtime without it;
-      denied/restricted still print-only (needs user-facing errorMessage);
-      requestLocation() is called before the authorization switch instead of
-      inside the authorized cases.
-- [ ] /find_restaurants — client wired (endpoint renamed findRestaurants).
-      NEXT MILESTONE: verify end-to-end with backend running (register ->
-      login -> get location -> send). Check the contract: field names and
-      how `time`/Date is encoded vs FastAPI's expectation. Commented-out
-      AuthManager scaffolding still in FunctionManager.swift.
-- [ ] Backend: rotate the Google Maps API key — STILL hardcoded in
-      location.py (it was committed publicly) — and move it + the hardcoded
-      SECRET_KEY in auth.py to environment variables; /find_restaurants
-      still ignores its `time` param; place_details() is half-implemented.
+- [x] Location.swift conversion — done 2026-07-19 (it had regressed to
+      startUpdatingLocation at some point; instructor re-fixed): requestLocation()
+      now inside authorized cases, didFailWithError implemented (print-only),
+      dead scaffolding removed. Remaining polish: denied/restricted and
+      didFailWithError still print-only — needs user-facing errorMessage.
+- [x] Restaurant details flow — built solo by Jax across both layers:
+      place_details() implemented, GET /restaurant_details/{id},
+      restaurantDetails Endpoint + RestaurantDTO + restaurantInfo + modal
+      sheet in LocationView. snake_case contract bug (reviewSummary vs
+      review_summary) found via hint and fixed by Jax himself.
+- [x] Auth on feature endpoints — /find_restaurants (by Jax) and
+      /restaurant_details (by instructor) now Depends(get_current_active_user);
+      requiresAuth: true on both Swift Endpoints. This now actually exercises
+      the 401-refresh path in APIClient.
+- [ ] NEXT MILESTONE: end-to-end run with backend up (register -> login ->
+      get location -> find_restaurants -> restaurant details sheet). Builds
+      clean as of 2026-07-19 but NOT yet runtime-verified.
+- [ ] Backend: rotate the Google Maps API key — STILL hardcoded in TWO
+      places now (location.py:14 and :38; committed publicly, urgent, must be
+      rotated in Google Cloud console — deleting from code isn't enough) —
+      and move it + the hardcoded SECRET_KEY in auth.py to environment
+      variables; /find_restaurants still ignores its `time` param.
+- [ ] Hygiene backlog: alice/secret123 comment still atop LoginView;
+      commented-out AuthManager scaffolding in FunctionManager.swift and dead
+      lines in place_details(); /auth/logout never clears the refresh_token
+      cookie (should use response.delete_cookie); stray semicolons in
+      LocationView; ModalContentView ignores its restaurantName param (title
+      shows the review text in .title font).
 
 ## Conventions in this codebase
 - Swift: @Observable (not ObservableObject) for new model classes; @State

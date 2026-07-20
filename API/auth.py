@@ -8,7 +8,8 @@ from models import User, UserInDB
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from passlib.context import CryptContext
-from database import DBUser
+from database import DBUser, get_db
+from sqlalchemy.orm import Session
 
 
 # Configuration
@@ -73,7 +74,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 ...
 
-async def get_current_user(db, token: str = Depends(oauth2_scheme)):
+async def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     """Get the current user from the JWT token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -96,7 +97,7 @@ async def get_current_user(db, token: str = Depends(oauth2_scheme)):
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
     """Get the current active user (not disabled)."""
-    if current_user.disabled:
+    if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 

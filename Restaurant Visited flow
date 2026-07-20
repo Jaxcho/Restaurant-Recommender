@@ -1,0 +1,10 @@
+Upon visiting a restaurant:
+
+Frontend sends the restaurant info to the backend
+Backend reads the user and restaurant info (name, opening hours, and location)
+If the restaurant already exists, find that restaurant and retrieve restaurant id
+    - check congruence of data
+    - if incongruent, check similar data (restaurant name is constant, as is location, hours could change)
+if no restaurant, create new restaurant, keep track of generated restaurant id
+Create new row in UserDinedRestaurants with user_id and restaurant_ids
+Return 200 when successful, return 500 if failed

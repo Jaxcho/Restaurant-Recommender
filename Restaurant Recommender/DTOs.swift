@@ -11,6 +11,17 @@ import Foundation
 
 // MARK: - Responses : Response from BackEnd
 
+nonisolated struct OpeningHoursStruct: Decodable {
+    let open: HourStruct
+    let close: HourStruct
+}
+
+nonisolated struct HourStruct: Decodable {
+    let day: String
+    let hour: String
+    let minute: String
+}
+
 nonisolated struct UserDTO: Decodable {
 //    let id: UUID
     let username: String
@@ -36,6 +47,8 @@ nonisolated struct FoundLocationsDTO: Decodable, Identifiable {
 
 nonisolated struct RestaurantDTO: Decodable{
     let reviewSummary: String
+    let currentOpeningHours : Array<OpeningHoursStruct>
+    let location: Array<Double>
 }
 
 

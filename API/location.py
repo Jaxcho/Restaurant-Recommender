@@ -45,12 +45,22 @@ async def place_details(restaurant_id):
   )
   # Set the field mask
   # fieldMask = "formattedAddress,displayName"
-  fieldMask = "reviewSummary"
+  fieldMask = "reviewSummary,location,currentOpeningHours"
   # Make the request
   response = await client.get_place(request=request, metadata=[("x-goog-fieldmask",fieldMask)])
   review_summary = response.review_summary.text.text
+  location = [response.location.latitude, response.location.longitude]
+  current_opening_hours = []
+  for period in response.currentOpeningHours.periods:
+    open = period.open
+    close = period.close
+    open_hour = { "day": open.day, "hour": open.hour, "minute": open.minute }
+    close_hour = { "day": close.day, "hour": close.hour, "minute": close.minute }
+    current_opening_hours.append({"open": open_hour})
+    current_opening_hours.append({"close": close_hour})
+
   # print(review_summary)
-  return { "reviewSummary": review_summary }
+  return { "review_summary": review_summary, "current_opening_hours" : current_opening_hours,  "location" : location}
   # for val in response.places:
   #     final.append({id})
   return response
