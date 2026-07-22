@@ -42,8 +42,8 @@ final class FunctionManager{
         return response
     }
     
-    func visited(restaurant_id: String){
-        let response: String  = try! apiClient.send(try! Endpoint.restaurantDetails(restaurant: restaurant_id))
+    func visited(placeId: String) async throws{
+        try await apiClient.send(Endpoint.visitedRestaurant(placeId: placeId))
     }
 //
 //    func location() async {

@@ -45,6 +45,10 @@ nonisolated struct FoundLocationsDTO: Decodable, Identifiable {
     let name: String
 }
 
+nonisolated struct UserDinedDTO: Encodable {
+    let placeId: String
+}
+
 nonisolated struct RestaurantDTO: Decodable{
     let reviewSummary: String
     let currentOpeningHours : Array<OpeningHoursStruct>

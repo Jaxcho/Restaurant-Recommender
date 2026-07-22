@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -29,16 +29,18 @@ class DBUser(Base):
 class DBRestaurant(Base):
     __tablename__ = "restaurants"
     id = Column(Integer, primary_key = True, index = True)
+    place_id = Column(String, index = True, nullable = False, unique = True)
     name = Column(String)
     hours = Column(String)
     location = Column(String)
 
 class DBUserDinedRestaurants(Base):
     __tablename__ = "user_dined_restaurants"
-    id = Column(Integer, index = True, primary_key = True)
-    user_id = Column(UUID(as_uuid = True), ForeignKey("users.id"), index = True)
-    restaurant_id = Column(Integer, ForeignKey("restaurants.id"), index = True)
-
+    __table_args__ = (UniqueConstraint("user_id", "restaurant_id"),)
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), index=True, nullable=False)
+    restaurant_id = Column(Integer, ForeignKey("restaurants.id"), index=True, nullable=False)
+    
 class DBReviews(Base):
     __tablename__ = 'reviews'
     id = Column(Integer, index = True, primary_key = True)

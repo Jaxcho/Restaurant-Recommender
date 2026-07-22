@@ -16,6 +16,9 @@ class UserCreate(BaseModel):
     full_name: Optional[str] = None
     password: str
 
+class VisitedRestaurant(BaseModel):
+    place_id: str
+
 class UserForm(BaseModel):
     username: str
     password: str

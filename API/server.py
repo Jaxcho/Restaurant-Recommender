@@ -4,10 +4,11 @@ from fastapi import FastAPI, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from location import nearby_search, place_details
 from auth import (authenticate_user, create_access_token, get_current_active_user, fake_users_db, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash, decode_token, token_validation)
-from database import DBUser, get_db
-from models import User, UserCreate, UserForm, UserInformation
+from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant
+from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,12 +16,37 @@ app = FastAPI(title="Authentication Demo", version="1.0.0")
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
+@app.post("/visited_restaurants")
+async def visited_restaurants(body: VisitedRestaurant, user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    db_user = db.query(DBUser).filter(DBUser.username == user.username).first()
+    db_place = db.query(DBRestaurant).filter(DBRestaurant.place_id == body.place_id).first()
+    if db_place == None:
+        # fetch details from Google
+        # build a DBRestaurant
+        # save it
+        details = await place_details(body.place_id)
+        db_place = DBRestaurant(place_id=body.place_id,name = details["name"], hours=str(details["current_opening_hours"]), location=str(details["location"]))
+        db.add(db_place)
+        db.commit()
+        db.refresh(db_place)
+    try:
+        db.add(DBUserDinedRestaurants(user_id=db_user.id, restaurant_id=db_place.id))
+        db.commit()
+    except IntegrityError:
+        db.rollback()   # required — the session is broken after the failed insert
+    return {"status": "ok"}
+
+    
+
+
+
 @app.get("/restaurant_details/{restaurant_id}")
 async def restaurant_details(restaurant_id: str, current_user: User = Depends(get_current_active_user)):
     return await place_details(restaurant_id)
 
 @app.post("/find_restaurants")
 async def find_restaurants(user_information: UserInformation, response: Response ,current_user: User = Depends(get_current_active_user)):
+     
     lat = user_information.lat
     lng = user_information.lng
     radius = user_information.radius*1609.344
