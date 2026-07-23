@@ -34,6 +34,7 @@ async def visited_restaurants(body: VisitedRestaurant, user: User = Depends(get_
         db.commit()
     except IntegrityError:
         db.rollback()   # required — the session is broken after the failed insert
+    print("AAAHHHHHHH", db)
     return {"status": "ok"}
 
     

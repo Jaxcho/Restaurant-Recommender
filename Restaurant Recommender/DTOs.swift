@@ -12,14 +12,14 @@ import Foundation
 // MARK: - Responses : Response from BackEnd
 
 nonisolated struct OpeningHoursStruct: Decodable {
-    let open: HourStruct
-    let close: HourStruct
+    let open: HourStruct?
+    let close: HourStruct?
 }
 
 nonisolated struct HourStruct: Decodable {
-    let day: String
-    let hour: String
-    let minute: String
+    let day: Int
+    let hour: Int
+    let minute: Int
 }
 
 nonisolated struct UserDTO: Decodable {

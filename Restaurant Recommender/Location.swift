@@ -66,6 +66,8 @@ struct ModalContentView: View {
     let hours: Array<OpeningHoursStruct>
     let restaurantReview: String
     let restaurantName: String
+    let placeId: String
+    @Environment(FunctionManager.self) private var functionManager
     // Environment property to dismiss the view programmatically
     @Environment(\.dismiss) var dismiss
 
@@ -84,8 +86,9 @@ struct ModalContentView: View {
             .buttonStyle(.bordered)
             
             Button("Mark Visited!") {
-                dismiss()
-//                TODO implement me
+                Task {
+                    try await functionManager.visited(placeId: placeId)
+                }
             }
             .buttonStyle(.bordered)
         }
@@ -110,6 +113,8 @@ struct LocationView: View {
     @State private var hours: Array<OpeningHoursStruct> = []
     @State private var restaurantName: String = "";
     
+    @State private var selectedPlaceId: String = "" // This is the current restaurant id that the modal uses that is used in mark visited
+    
     func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Int, _ time: Date){
         errorMessage = nil
         isSubmitting = true
@@ -133,7 +138,7 @@ struct LocationView: View {
                 isSubmitting = false
             }
             do {
-                @State private var place: = try await functionManager.visited(placeId: place_id)
+                try await functionManager.visited(placeId: place_id)
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
             }
@@ -187,11 +192,10 @@ struct LocationView: View {
                     HStack {
                         Text(location.name)
                         Button(">") {
+                            selectedPlaceId = location.id
                             restaurantData(restaurant_id: location.id, restaurant_name: location.name)
                         }.disabled(isSubmitting)
-                        Button("Been"){
-                            visited(place_id: location.id)
-                        }
+                        
                     }
                 }
                 
@@ -220,7 +224,10 @@ struct LocationView: View {
 
             .padding()
             .sheet(isPresented: $showModal) {
-                ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName)
+                ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId)
             }
         }
     }
+#Preview{
+    
+}
