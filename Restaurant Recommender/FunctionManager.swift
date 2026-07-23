@@ -43,7 +43,7 @@ final class FunctionManager{
     }
     
     func visited(placeId: String) async throws{
-        try await apiClient.send(Endpoint.visitedRestaurant(placeId: placeId))
+        return try await apiClient.send(Endpoint.visitedRestaurant(placeId: placeId))
     }
 //
 //    func location() async {

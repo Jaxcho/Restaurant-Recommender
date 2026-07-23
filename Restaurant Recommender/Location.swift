@@ -106,8 +106,9 @@ struct LocationView: View {
     @State private var locations: Array<FoundLocationsDTO> = [];
     @State private var restaurantReview: String = ""
     @State private var showModal = false
-    @State private var location: Array<Double>
-    @State private var hours: Array<OpeningHoursStruct>
+    @State private var location: Array<Double> = []
+    @State private var hours: Array<OpeningHoursStruct> = []
+    @State private var restaurantName: String = "";
     
     func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Int, _ time: Date){
         errorMessage = nil
@@ -124,7 +125,22 @@ struct LocationView: View {
         }
     }
     
-    func restaurantData(restaurant_id: String){
+    func visited(place_id: String){
+        errorMessage = nil
+        isSubmitting = true
+        Task {
+            defer {
+                isSubmitting = false
+            }
+            do {
+                @State private var place: = try await functionManager.visited(placeId: place_id)
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+            }
+        }
+    }
+    
+    func restaurantData(restaurant_id: String, restaurant_name: String){
         errorMessage = nil
         isSubmitting = true
         Task {
@@ -134,6 +150,7 @@ struct LocationView: View {
             do {
                 let restaurant = try await functionManager.restaurantInfo(restaurant_id: restaurant_id)
                 restaurantReview = restaurant.reviewSummary
+                restaurantName = restaurant_name
                 hours = restaurant.currentOpeningHours
                 location = restaurant.location
                 
@@ -170,8 +187,11 @@ struct LocationView: View {
                     HStack {
                         Text(location.name)
                         Button(">") {
-                            restaurantData(restaurant_id: location.id)
+                            restaurantData(restaurant_id: location.id, restaurant_name: location.name)
                         }.disabled(isSubmitting)
+                        Button("Been"){
+                            visited(place_id: location.id)
+                        }
                     }
                 }
                 
@@ -200,7 +220,7 @@ struct LocationView: View {
 
             .padding()
             .sheet(isPresented: $showModal) {
-                ModalContentView(restaurantReview: restaurantReview, restaurantName: "")
+                ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName)
             }
         }
     }

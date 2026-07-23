@@ -29,9 +29,10 @@ struct PostLoginView: View {
                 }
                 Text("Welcome!")
                     .font(.title)
-                NavigationLink(destination: LocationView()) {
+                NavigationLink(destination: LocationView() ){
                     Text("Go to locations")
                 }
+                               
             }
             .padding()
         }
