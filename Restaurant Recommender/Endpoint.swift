@@ -14,6 +14,7 @@ nonisolated struct Endpoint {
     }
 
     let path: String
+    var queryItems: [URLQueryItem]?
     let method: Method
     var body: Data?
     var requiresAuth: Bool = true
@@ -76,12 +77,14 @@ extension Endpoint {
         )
     }
     
-    nonisolated static func restaurantDetails(restaurant: String) throws -> Endpoint {
+    nonisolated static func restaurantDetails(restaurant: String, lat: Double, lng: Double) -> Endpoint {
         Endpoint(
-            path: "/restaurant_details/\(restaurant)",
-            method: .get,
-            body: nil,
-            requiresAuth: true
+            path: "restaurant_details/\(restaurant)",
+            queryItems: [
+                URLQueryItem(name: "lat", value: String(lat)),
+                URLQueryItem(name: "lng", value: String(lng))
+            ],
+            method: .get
         )
     }
     
@@ -90,6 +93,14 @@ extension Endpoint {
             path: "/visited_restaurants",
             method: .post,
             body: try JSONEncoder.api.encode(UserDinedDTO(placeId: placeId)),
+            requiresAuth: true
+        )
+    }
+    
+    nonisolated static func showVisited() -> Endpoint {
+        Endpoint(
+            path: "/show_visited",
+            method: .get,
             requiresAuth: true
         )
     }

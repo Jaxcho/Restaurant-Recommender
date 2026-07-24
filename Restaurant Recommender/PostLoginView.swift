@@ -27,10 +27,14 @@ struct PostLoginView: View {
                 Button("Logout"){
                     logout()
                 }
+                
                 Text("Welcome!")
                     .font(.title)
                 NavigationLink(destination: LocationView() ){
                     Text("Go to locations")
+                }
+                NavigationLink(destination: ShowVisited() ){
+                    Text("See visited")
                 }
                                
             }
@@ -39,6 +43,4 @@ struct PostLoginView: View {
     }
 }
 
-#Preview {
-    PostLoginView()
-}
+

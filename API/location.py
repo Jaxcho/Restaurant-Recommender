@@ -1,6 +1,7 @@
 import asyncio
 from google.maps import places_v1
 from google.type import latlng_pb2
+from geopy.distance import geodesic
 
 async def nearby_search(lat, lng, radius):
  
@@ -33,7 +34,8 @@ def jsonify(data):
   return response
 
 
-async def place_details(restaurant_id):
+async def place_details(restaurant_id, lat, lng):
+  distance = 0
   final = []
   client = places_v1.PlacesAsyncClient(client_options={"api_key": "AIzaSyDlTtqGqM5cy9S8AeK5mtX5UgBxWIFeoDE"})
   # Build the request
@@ -49,7 +51,6 @@ async def place_details(restaurant_id):
   # Make the request
   response = await client.get_place(request=request, metadata=[("x-goog-fieldmask",fieldMask)])
   review_summary = response.review_summary.text.text
-  location = [response.location.latitude, response.location.longitude]
   current_opening_hours = []
   name = response.display_name.text
   for period in response.current_opening_hours.periods:
@@ -60,9 +61,11 @@ async def place_details(restaurant_id):
     current_opening_hours.append({"open": open_hour})
     current_opening_hours.append({"close": close_hour})
   
-
+  point = (lat, lng)
+  location = [response.location.latitude, response.location.longitude]
+  distance = geodesic(point, location).miles
   # print(review_summary)
-  return { "review_summary": review_summary, "current_opening_hours" : current_opening_hours,  "location" : location, "name":name}
+  return { "review_summary": review_summary, "current_opening_hours" : current_opening_hours,  "location" : location, "name":name, "distance": distance}
   # for val in response.places:
   #     final.append({id})
   return response

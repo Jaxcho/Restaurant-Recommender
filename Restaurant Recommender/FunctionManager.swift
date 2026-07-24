@@ -20,10 +20,13 @@ import Foundation
 final class FunctionManager{
 
     let apiClient: APIClient
-    
+    var lat: Double
+    var lng: Double
     
     init(apiClient: APIClient) {
         self.apiClient = apiClient
+        self.lat = 0.0
+        self.lng = 0.0
         
     }
     
@@ -34,16 +37,23 @@ final class FunctionManager{
 //    }
     func location(lat: Double, lng: Double, radius: Int, time: Date) async throws -> Array<FoundLocationsDTO> {
         let response: Array<FoundLocationsDTO>  = try await apiClient.send(try .findRestaurants(lat: lat, lng: lng, radius: radius, time: time))
+        self.lat = lat
+        self.lng = lng
         return response
     }
     
     func restaurantInfo(restaurant_id: String) async throws -> RestaurantDTO {
-        let response: RestaurantDTO  = try await apiClient.send(try .restaurantDetails(restaurant: restaurant_id))
+        let response: RestaurantDTO  = try await apiClient.send(.restaurantDetails(restaurant: restaurant_id, lat: lat, lng: lng))
         return response
     }
     
     func visited(placeId: String) async throws{
         return try await apiClient.send(Endpoint.visitedRestaurant(placeId: placeId))
+    }
+    
+    func showVisited() async throws -> Array<VisitedRestaurantDTO>{
+        let restaurants: Array<VisitedRestaurantDTO> = try await apiClient.send(Endpoint.showVisited())
+        return restaurants
     }
 //
 //    func location() async {

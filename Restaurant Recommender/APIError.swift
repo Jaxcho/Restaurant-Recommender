@@ -8,6 +8,7 @@ import Foundation
 nonisolated enum APIError: Error, LocalizedError {
     case notAuthenticated
     case sessionExpired
+    case invalidURL(String)
     case invalidResponse
     case decodingFailed(Error)
     case server(status: Int, message: String?)
@@ -16,6 +17,8 @@ nonisolated enum APIError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
+        case let .invalidURL(path):
+            return "Couldn't build a valid request URL for \(path)."
         case .userNameTaken:
             return "Username is taken, please choose another one."
         case .notAuthenticated:

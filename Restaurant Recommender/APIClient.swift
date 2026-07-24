@@ -80,7 +80,16 @@ actor APIClient {
     }
 
     private func buildRequest(for endpoint: Endpoint) throws -> URLRequest {
-        var request = URLRequest(url: baseURL.appendingPathComponent(endpoint.path))
+        guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
+            throw APIError.invalidURL(endpoint.path)
+        }
+        components.path = "/" + endpoint.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        components.queryItems = endpoint.queryItems
+
+        guard let url = components.url else {
+            throw APIError.invalidURL(endpoint.path)
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = endpoint.method.rawValue
 
         if let body = endpoint.body {

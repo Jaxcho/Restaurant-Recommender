@@ -8,3 +8,4 @@ bcrypt<4.1
 python-multipart
 pydantic
 google-maps-places
+geopy

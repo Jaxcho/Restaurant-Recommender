@@ -1,6 +1,7 @@
 import asyncio
 import uvicorn
-from fastapi import FastAPI, Depends, HTTPException, status, Response, Request
+from typing import Annotated
+from fastapi import FastAPI, Depends, HTTPException, status, Response, Request, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from sqlalchemy.orm import Session
@@ -24,7 +25,7 @@ async def visited_restaurants(body: VisitedRestaurant, user: User = Depends(get_
         # fetch details from Google
         # build a DBRestaurant
         # save it
-        details = await place_details(body.place_id)
+        details = await place_details(body.place_id, 0, 0)
         db_place = DBRestaurant(place_id=body.place_id,name = details["name"], hours=str(details["current_opening_hours"]), location=str(details["location"]))
         db.add(db_place)
         db.commit()
@@ -33,16 +34,18 @@ async def visited_restaurants(body: VisitedRestaurant, user: User = Depends(get_
         db.add(DBUserDinedRestaurants(user_id=db_user.id, restaurant_id=db_place.id))
         db.commit()
     except IntegrityError:
-        db.rollback()   # required — the session is broken after the failed insert
-    return {"status": "ok"}
+        db.rollback()
+       # required — the session is broken after the failed insert
+    return db_place
 
     
 
 
 
 @app.get("/restaurant_details/{restaurant_id}")
-async def restaurant_details(restaurant_id: str, current_user: User = Depends(get_current_active_user)):
-    return await place_details(restaurant_id)
+async def restaurant_details(restaurant_id: str, current_user: User = Depends(get_current_active_user), lat: float = 0.0, lng: float = 0.0):
+
+    return await place_details(restaurant_id, lat, lng)
 
 @app.post("/find_restaurants")
 async def find_restaurants(user_information: UserInformation, response: Response ,current_user: User = Depends(get_current_active_user)):
@@ -82,6 +85,16 @@ async def refresh_token(response: Response, request: Request,  db: Session = Dep
 
     return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token}
 
+@app.get('/show_visited')
+async def show_visited(current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    db_user = db.query(DBUser).filter(DBUser.username == current_user.username).first()
+    visited_places = (
+        db.query(DBRestaurant)
+        .join(DBUserDinedRestaurants, DBUserDinedRestaurants.restaurant_id == DBRestaurant.id)
+        .filter(DBUserDinedRestaurants.user_id == db_user.id)
+        .all()
+    )
+    return visited_places
 
 
 @app.get("/users/me", response_model=User)

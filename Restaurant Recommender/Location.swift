@@ -67,6 +67,7 @@ struct ModalContentView: View {
     let restaurantReview: String
     let restaurantName: String
     let placeId: String
+    let distance: Double
     @Environment(FunctionManager.self) private var functionManager
     // Environment property to dismiss the view programmatically
     @Environment(\.dismiss) var dismiss
@@ -76,6 +77,8 @@ struct ModalContentView: View {
             Text(restaurantReview)
                 .font(.title)
                 .bold()
+            
+            Text("\(distance)")
             
             Text("Swipe down to dismiss or tap the button below.")
                 .multilineTextAlignment(.center)
@@ -88,6 +91,7 @@ struct ModalContentView: View {
             Button("Mark Visited!") {
                 Task {
                     try await functionManager.visited(placeId: placeId)
+                    dismiss()
                 }
             }
             .buttonStyle(.bordered)
@@ -112,6 +116,7 @@ struct LocationView: View {
     @State private var location: Array<Double> = []
     @State private var hours: Array<OpeningHoursStruct> = []
     @State private var restaurantName: String = "";
+    @State private var distance: Double = 0;
     
     @State private var selectedPlaceId: String = "" // This is the current restaurant id that the modal uses that is used in mark visited
     
@@ -154,6 +159,7 @@ struct LocationView: View {
             }
             do {
                 let restaurant = try await functionManager.restaurantInfo(restaurant_id: restaurant_id)
+                distance = restaurant.distance
                 restaurantReview = restaurant.reviewSummary
                 restaurantName = restaurant_name
                 hours = restaurant.currentOpeningHours
@@ -224,10 +230,8 @@ struct LocationView: View {
 
             .padding()
             .sheet(isPresented: $showModal) {
-                ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId)
+                ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance)
             }
         }
     }
-#Preview{
-    
-}
+
