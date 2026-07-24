@@ -21,6 +21,7 @@ async def nearby_search(lat, lng, radius):
   fieldMask = "places.id,places.displayName"
   response = await client.search_nearby(request=request, metadata=[("x-goog-fieldmask",fieldMask)]) 
   response = jsonify(response)
+  
   return response
 
 

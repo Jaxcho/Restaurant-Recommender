@@ -62,12 +62,14 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
 }
 
 struct ModalContentView: View {
+    
     let location: Array<Double>
     let hours: Array<OpeningHoursStruct>
     let restaurantReview: String
     let restaurantName: String
     let placeId: String
     let distance: Double
+    let showVisited: Bool
     @Environment(FunctionManager.self) private var functionManager
     // Environment property to dismiss the view programmatically
     @Environment(\.dismiss) var dismiss
@@ -78,8 +80,9 @@ struct ModalContentView: View {
                 .font(.title)
                 .bold()
             
-            Text("\(distance)")
-            
+            if showVisited == false{
+                Text("\(distance)")
+            }
             Text("Swipe down to dismiss or tap the button below.")
                 .multilineTextAlignment(.center)
             
@@ -87,14 +90,16 @@ struct ModalContentView: View {
                 dismiss()
             }
             .buttonStyle(.bordered)
-            
-            Button("Mark Visited!") {
-                Task {
-                    try await functionManager.visited(placeId: placeId)
-                    dismiss()
+            if showVisited == false {
+                Button("Mark Visited!") {
+                    Task {
+                        try await functionManager.visited(placeId: placeId)
+                        dismiss()
+                    }
                 }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
+            
         }
         .padding()
     }
@@ -165,6 +170,7 @@ struct LocationView: View {
                 hours = restaurant.currentOpeningHours
                 location = restaurant.location
                 
+                
                 showModal = true
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
@@ -194,6 +200,9 @@ struct LocationView: View {
                     camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 0.5))
                 }
             }
+                Text("Radius search")
+                TextField("Enter mile radius (Default 1)", value: $radius, format: .number)
+                        .keyboardType(.numberPad)
                 List(locations) { location in
                     HStack {
                         Text(location.name)
@@ -210,7 +219,7 @@ struct LocationView: View {
                     if let coordinate = locationManager.lastKnownLocation {
                         latitude = coordinate.latitude;
                         longitude = coordinate.longitude;
-                        radius = 1;
+//                        radius = 1;
                         time = Date();
                         if let cam = camera.camera {
                             camera = .camera(MapCamera(centerCoordinate: coordinate, distance: cam.distance))
@@ -230,7 +239,7 @@ struct LocationView: View {
 
             .padding()
             .sheet(isPresented: $showModal) {
-                ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance)
+                ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: true)
             }
         }
     }
