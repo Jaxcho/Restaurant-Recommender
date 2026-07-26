@@ -122,6 +122,7 @@ struct LocationView: View {
     @State private var hours: Array<OpeningHoursStruct> = []
     @State private var restaurantName: String = "";
     @State private var distance: Double = 0;
+    @State private var address: String = ""
     
     @State private var selectedPlaceId: String = "" // This is the current restaurant id that the modal uses that is used in mark visited
     
@@ -153,6 +154,10 @@ struct LocationView: View {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
             }
         }
+    }
+    
+    func geocodeAddres(address: String){
+        
     }
     
     func restaurantData(restaurant_id: String, restaurant_name: String){
@@ -190,6 +195,7 @@ struct LocationView: View {
                         Marker("You", coordinate: coordinate)
                         }
                     }.frame(height: 200)
+                TextField("Address", text: $address)
             Button("Zoom Out") {
                 if let cam = camera.camera {
                     camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 2))
