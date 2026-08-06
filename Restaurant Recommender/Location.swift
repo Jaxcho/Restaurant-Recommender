@@ -70,6 +70,8 @@ struct ModalContentView: View {
     let placeId: String
     let distance: Double
     let showVisited: Bool
+    @State private var dateVisited: Date = Date()
+    
     @Environment(FunctionManager.self) private var functionManager
     // Environment property to dismiss the view programmatically
     @Environment(\.dismiss) var dismiss
@@ -82,6 +84,7 @@ struct ModalContentView: View {
             
             if showVisited == false{
                 Text("\(distance)")
+                DatePicker("Date visited", selection: $dateVisited, displayedComponents: .date)
             }
             Text("Swipe down to dismiss or tap the button below.")
                 .multilineTextAlignment(.center)
@@ -93,7 +96,7 @@ struct ModalContentView: View {
             if showVisited == false {
                 Button("Mark Visited!") {
                     Task {
-                        try await functionManager.visited(placeId: placeId)
+                        try await functionManager.visited(placeId: placeId, dateVisited: dateVisited)
                         dismiss()
                     }
                 }
@@ -141,20 +144,6 @@ struct LocationView: View {
         }
     }
     
-    func visited(place_id: String){
-        errorMessage = nil
-        isSubmitting = true
-        Task {
-            defer {
-                isSubmitting = false
-            }
-            do {
-                try await functionManager.visited(placeId: place_id)
-            } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
-            }
-        }
-    }
     
     func geocodeAddres(address: String){
         
@@ -245,7 +234,7 @@ struct LocationView: View {
 
             .padding()
             .sheet(isPresented: $showModal) {
-                ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: true)
+                ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: false)
             }
         }
     }

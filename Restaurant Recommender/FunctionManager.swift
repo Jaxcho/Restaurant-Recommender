@@ -46,9 +46,9 @@ final class FunctionManager{
         let response: RestaurantDTO  = try await apiClient.send(.restaurantDetails(restaurant: restaurant_id, lat: lat, lng: lng))
         return response
     }
-    
-    func visited(placeId: String) async throws{
-        return try await apiClient.send(Endpoint.visitedRestaurant(placeId: placeId))
+    func visited(placeId: String, dateVisited: Date) async throws {
+        let formatted = APIDateCoding.dateOnly.string(from: dateVisited)
+        try await apiClient.send(Endpoint.visitedRestaurant(placeId: placeId, dateVisited: formatted))
     }
     
     func showVisited() async throws -> Array<VisitedRestaurantDTO>{

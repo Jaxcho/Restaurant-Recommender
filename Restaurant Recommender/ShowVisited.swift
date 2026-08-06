@@ -10,21 +10,18 @@ import SwiftUI
 
 struct ShowVisited: View {
     @Environment(FunctionManager.self) private var functionManager
-    @State private var name: String = ""
-    @State private var placeId: String = ""
     @State private var location: Array<Double> = []
     @State private var hours: Array<OpeningHoursStruct> = []
-    @State private var id: Int = 0
     @State private var errorMessage: String? = nil
     @State private var isSubmitting: Bool = false
     @State private var locations: Array<VisitedRestaurantDTO> = []
-    @State private var distance: Double =  0.0
+    @State private var distance: Double = 0.0
     @State private var restaurantReview: String = ""
     @State private var restaurantName: String = ""
     @State private var showModal: Bool = false
-    @State private var selectedPlaceId: String  = ""
-    
-    func sendLocation() {
+    @State private var selectedPlaceId: String = ""
+
+    func loadVisited() {
         errorMessage = nil
         isSubmitting = true
         Task {
@@ -38,8 +35,8 @@ struct ShowVisited: View {
             }
         }
     }
-    
-    func restaurantData(restaurant_id: String, restaurant_name: String){
+
+    func restaurantData(restaurant_id: String, restaurant_name: String) {
         errorMessage = nil
         isSubmitting = true
         Task {
@@ -53,29 +50,35 @@ struct ShowVisited: View {
                 restaurantName = restaurant_name
                 hours = restaurant.currentOpeningHours
                 location = restaurant.location
-                
                 showModal = true
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
             }
         }
     }
-    
-    
-    
+
     var body: some View {
         Text("Locations")
-        .onAppear {
-            sendLocation()
+            .onAppear {
+                loadVisited()
+            }
+
+        if let errorMessage {
+            Text(errorMessage)
+                .foregroundStyle(.red)
         }
-        List(locations) { locatio in
+
+        List(locations) { visited in
             HStack {
-                Text(locatio.name)
+                Text(visited.name)
+                Spacer()
+                Text(visited.datesVisited.joined(separator: ", "))
+                    .foregroundStyle(.secondary)
                 Button(">") {
-                    selectedPlaceId = locatio.placeId
-                    restaurantData(restaurant_id: locatio.placeId, restaurant_name: locatio.name)
-                }.disabled(isSubmitting)
-                
+                    selectedPlaceId = visited.placeId
+                    restaurantData(restaurant_id: visited.placeId, restaurant_name: visited.name)
+                }
+                .disabled(isSubmitting)
             }
         }
         .padding()

@@ -1,5 +1,10 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import date
+
+class VisitedRestaurant(BaseModel):
+    place_id: str
+    date_visited: date
 
 class User(BaseModel):
     username: str
@@ -15,9 +20,6 @@ class UserCreate(BaseModel):
     email: Optional[str] = None
     full_name: Optional[str] = None
     password: str
-
-class VisitedRestaurant(BaseModel):
-    place_id: str
 
 class UserForm(BaseModel):
     username: str

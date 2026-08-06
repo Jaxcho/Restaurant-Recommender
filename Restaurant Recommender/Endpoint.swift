@@ -88,11 +88,11 @@ extension Endpoint {
         )
     }
     
-    nonisolated static func visitedRestaurant(placeId: String ) throws -> Endpoint {
+    nonisolated static func visitedRestaurant(placeId: String, dateVisited: String ) throws -> Endpoint {
         Endpoint(
             path: "/visited_restaurants",
             method: .post,
-            body: try JSONEncoder.api.encode(UserDinedDTO(placeId: placeId)),
+            body: try JSONEncoder.api.encode(VisitedRestaurantPayload(placeId: placeId, dateVisited:dateVisited)),
             requiresAuth: true
         )
     }

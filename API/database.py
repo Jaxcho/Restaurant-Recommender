@@ -4,6 +4,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+from sqlalchemy import Date
+
+
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -36,10 +39,10 @@ class DBRestaurant(Base):
 
 class DBUserDinedRestaurants(Base):
     __tablename__ = "user_dined_restaurants"
-    __table_args__ = (UniqueConstraint("user_id", "restaurant_id"),)
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), index=True, nullable=False)
     restaurant_id = Column(Integer, ForeignKey("restaurants.id"), index=True, nullable=False)
+    date_visited = Column(Date, nullable=False)
     
 class DBReviews(Base):
     __tablename__ = 'reviews'

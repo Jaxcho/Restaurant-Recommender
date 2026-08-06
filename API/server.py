@@ -31,7 +31,7 @@ async def visited_restaurants(body: VisitedRestaurant, user: User = Depends(get_
         db.commit()
         db.refresh(db_place)
     try:
-        db.add(DBUserDinedRestaurants(user_id=db_user.id, restaurant_id=db_place.id))
+        db.add(DBUserDinedRestaurants(user_id=db_user.id, restaurant_id=db_place.id, date_visited= body.date_visited))
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -88,14 +88,25 @@ async def refresh_token(response: Response, request: Request,  db: Session = Dep
 @app.get('/show_visited')
 async def show_visited(current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
     db_user = db.query(DBUser).filter(DBUser.username == current_user.username).first()
-    visited_places = (
-        db.query(DBRestaurant)
-        .join(DBUserDinedRestaurants, DBUserDinedRestaurants.restaurant_id == DBRestaurant.id)
-        .filter(DBUserDinedRestaurants.user_id == db_user.id)
-        .all()
-    )
-    return visited_places
-
+    visited = (
+    db.query(DBRestaurant, DBUserDinedRestaurants.date_visited)
+    .join(DBUserDinedRestaurants, DBUserDinedRestaurants.restaurant_id == DBRestaurant.id)
+    .filter(DBUserDinedRestaurants.user_id == db_user.id)
+    .order_by(DBUserDinedRestaurants.date_visited)
+    .all()
+)
+    grouped = {}
+    for restaurant, date_visited in visited:
+        entry = grouped.setdefault(restaurant.id, {
+            "id": restaurant.id,
+            "place_id": restaurant.place_id,
+            "name": restaurant.name,
+            "hours": restaurant.hours,
+            "location": restaurant.location,
+            "dates_visited": [],
+        })
+        entry["dates_visited"].append(date_visited)
+    return list(grouped.values())
 
 @app.get("/users/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):

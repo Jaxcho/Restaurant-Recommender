@@ -24,9 +24,18 @@ nonisolated enum APIDateCoding {
         return formatter
     }()
 
+    static let dateOnly: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
+
     static func parse(_ string: String) -> Date? {
         withFractionalSeconds.date(from: string) ?? plain.date(from: string)
     }
+    
 }
 
 extension JSONDecoder {
