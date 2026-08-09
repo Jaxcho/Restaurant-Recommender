@@ -9,6 +9,5 @@ def geocode(address):
         return {"lat": result["lat"], "lon": result["lon"], "display": result["display_name"]}
     return None
 
-location = geocode("Eiffel Tower, Paris")
-print(location)
-# {lat: 48.858, lon: 2.294, display: Tour Eiffel, Paris, France}
+if __name__ == "__main__":
+    print(geocode("Eiffel Tower, Paris"))

@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from location import nearby_search, place_details
 from auth import (authenticate_user, create_access_token, get_current_active_user, fake_users_db, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash, decode_token, token_validation)
 from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant
-from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant
+from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from pick_location import geocode
@@ -49,12 +49,15 @@ async def restaurant_details(restaurant_id: str, current_user: User = Depends(ge
     return await place_details(restaurant_id, lat, lng)
 
 @app.post("/pick_location")
-async def pick_location(address: String, radius: Float):
-    response = geocode(address)
-    lat = response["lat"]
-    lng = response["lon"]    
-    data = await nearby_search(lat, lng, radius)
-    return data
+async def pick_location(body:PickLocation, user = Depends(get_current_active_user) ):
+    response = geocode(body.address)
+    if response is None:
+        raise HTTPException(status_code=404, detail="Address not found")
+    # Nominatim returns coordinates as strings
+    lat = float(response["lat"])
+    lng = float(response["lon"])
+    data = await nearby_search(lat, lng, body.radius*1609.344)
+    return {"lat": lat, "lng": lng, "restaurants": data}
 
 
 @app.post("/find_restaurants")

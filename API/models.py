@@ -31,6 +31,8 @@ class UserInformation(BaseModel):
     radius: float
     time: str
 
-
+class PickLocation(BaseModel):
+    address: str
+    radius: float
     
     

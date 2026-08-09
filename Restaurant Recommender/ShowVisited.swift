@@ -58,30 +58,49 @@ struct ShowVisited: View {
     }
 
     var body: some View {
-        Text("Locations")
-            .onAppear {
-                loadVisited()
+        VStack(spacing: 0) {
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal)
             }
 
-        if let errorMessage {
-            Text(errorMessage)
-                .foregroundStyle(.red)
-        }
-
-        List(locations) { visited in
-            HStack {
-                Text(visited.name)
-                Spacer()
-                Text(visited.datesVisited.joined(separator: ", "))
-                    .foregroundStyle(.secondary)
-                Button(">") {
+            List(locations) { visited in
+                Button {
                     selectedPlaceId = visited.placeId
                     restaurantData(restaurant_id: visited.placeId, restaurant_name: visited.name)
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(visited.name)
+                                .foregroundStyle(.primary)
+                            Text(visited.datesVisited.joined(separator: ", "))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .disabled(isSubmitting)
             }
+            .overlay {
+                if locations.isEmpty {
+                    ContentUnavailableView(
+                        "Nothing visited yet",
+                        systemImage: "checkmark.circle",
+                        description: Text("Restaurants you mark as visited will show up here.")
+                    )
+                }
+            }
         }
-        .padding()
+        .navigationTitle("Visited")
+        .onAppear {
+            loadVisited()
+        }
         .sheet(isPresented: $showModal) {
             ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: true)
         }

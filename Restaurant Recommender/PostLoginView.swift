@@ -22,23 +22,25 @@ struct PostLoginView: View {
     }
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 16) {
-                Button("Logout"){
-                    logout()
+        NavigationStack {
+            List {
+                Section {
+                    NavigationLink(destination: LocationView()) {
+                        Label("Find Restaurants", systemImage: "magnifyingglass")
+                    }
+                    NavigationLink(destination: ShowVisited()) {
+                        Label("Visited Restaurants", systemImage: "checkmark.circle")
+                    }
                 }
-                
-                Text("Welcome!")
-                    .font(.title)
-                NavigationLink(destination: LocationView() ){
-                    Text("Go to locations")
-                }
-                NavigationLink(destination: ShowVisited() ){
-                    Text("See visited")
-                }
-                               
             }
-            .padding()
+            .navigationTitle("Restaurant Radar")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Logout", role: .destructive) {
+                        logout()
+                    }
+                }
+            }
         }
     }
 }

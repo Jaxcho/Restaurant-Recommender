@@ -77,34 +77,56 @@ struct ModalContentView: View {
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text(restaurantReview)
-                .font(.title)
+        VStack(alignment: .leading, spacing: 16) {
+            Text(restaurantName)
+                .font(.title2)
                 .bold()
-            
-            if showVisited == false{
-                Text("\(distance)")
-                DatePicker("Date visited", selection: $dateVisited, displayedComponents: .date)
-            }
-            Text("Swipe down to dismiss or tap the button below.")
-                .multilineTextAlignment(.center)
-            
-            Button("Dismiss") {
-                dismiss()
-            }
-            .buttonStyle(.bordered)
+
             if showVisited == false {
-                Button("Mark Visited!") {
+                Label("\(distance, specifier: "%.1f") away", systemImage: "location")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            ScrollView {
+                if restaurantReview.isEmpty {
+                    Text("No review summary available.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text(restaurantReview)
+                        .font(.body)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            if showVisited == false {
+                DatePicker("Date visited", selection: $dateVisited, displayedComponents: .date)
+
+                Button {
                     Task {
                         try await functionManager.visited(placeId: placeId, dateVisited: dateVisited)
                         dismiss()
                     }
+                } label: {
+                    Label("Mark Visited", systemImage: "checkmark.circle.fill")
+                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
             }
-            
+
+            Button("Dismiss") {
+                dismiss()
+            }
+            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
         }
         .padding()
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -146,8 +168,26 @@ struct LocationView: View {
     }
     
     
-    func geocodeAddres(address: String){
-        
+    func pickLocation(address: String, radius: Double){
+        errorMessage = nil
+        isSubmitting = true
+        Task {
+            defer {
+                isSubmitting = false
+            }
+            do {
+                let response = try await functionManager.pickLocation(address: address, radius: radius)
+                locations = response.restaurants
+                latitude = response.lat
+                longitude = response.lng
+                let coordinate = CLLocationCoordinate2D(latitude: response.lat, longitude: response.lng)
+                if let cam = camera.camera {
+                    camera = .camera(MapCamera(centerCoordinate: coordinate, distance: cam.distance))
+                }
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+            }
+        }
     }
     
     func restaurantData(restaurant_id: String, restaurant_name: String){
@@ -174,77 +214,133 @@ struct LocationView: View {
     }
     
     
-        var body: some View {
+    var body: some View {
+        VStack(spacing: 12) {
+            Map(position: $camera) {
+                if let coordinate = locationManager.lastKnownLocation {
+                    Marker("You", coordinate: coordinate)
+                }
+            }
+            .frame(height: 240)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(alignment: .bottomTrailing) {
+                VStack(spacing: 0) {
+                    Button {
+                        if let cam = camera.camera {
+                            camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 0.5))
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                            .frame(width: 36, height: 36)
+                    }
+                    Divider()
+                        .frame(width: 36)
+                    Button {
+                        if let cam = camera.camera {
+                            camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 2))
+                        }
+                    } label: {
+                        Image(systemName: "minus")
+                            .frame(width: 36, height: 36)
+                    }
+                }
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding(8)
+            }
+
             if let errorMessage {
                 Text(errorMessage)
+                    .font(.callout)
                     .foregroundStyle(.red)
             }
-            VStack {
-                Map(position: $camera) {
-                    if let coordinate = locationManager.lastKnownLocation {
-                        Marker("You", coordinate: coordinate)
+
+            HStack {
+                TextField("Search by address", text: $address)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .onSubmit {
+                        if !address.isEmpty {
+                            pickLocation(address: address, radius: radius)
                         }
-                    }.frame(height: 200)
-                TextField("Address", text: $address)
-            Button("Zoom Out") {
-                if let cam = camera.camera {
-                    camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 2))
-                }
-            }
-            Button("Zoom In") {
-                if let cam = camera.camera {
-                    camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 0.5))
-                }
-            }
-                
-                Slider(
-                    value : $radius,
-                    in: 0...50,
-                    onEditingChanged: {
-                        editing in
-                        isEditing = editing
                     }
-                    
-                )
-                Text("\(radius)").foregroundColor(isEditing ? .red : .blue)
-                
-                List(locations) { location in
+                Button {
+                    pickLocation(address: address, radius: radius)
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .buttonStyle(.bordered)
+                .disabled(isSubmitting || address.isEmpty)
+            }
+
+            VStack(spacing: 2) {
+                Slider(value: $radius, in: 0...50) { editing in
+                    isEditing = editing
+                }
+                Text("Radius: \(radius, specifier: "%.0f") mi")
+                    .font(.footnote)
+                    .foregroundStyle(isEditing ? .primary : .secondary)
+            }
+
+            List(locations) { location in
+                Button {
+                    selectedPlaceId = location.id
+                    restaurantData(restaurant_id: location.id, restaurant_name: location.name)
+                } label: {
                     HStack {
                         Text(location.name)
-                        Button(">") {
-                            selectedPlaceId = location.id
-                            restaurantData(restaurant_id: location.id, restaurant_name: location.name)
-                        }.disabled(isSubmitting)
-                        
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                
-                Button("Get location") {
+                .disabled(isSubmitting)
+            }
+            .listStyle(.plain)
+            .overlay {
+                if locations.isEmpty {
+                    ContentUnavailableView(
+                        "No restaurants yet",
+                        systemImage: "fork.knife",
+                        description: Text("Search an address or use your location.")
+                    )
+                }
+            }
+
+            HStack {
+                Button {
                     locationManager.checkLocationAuthorization()
                     if let coordinate = locationManager.lastKnownLocation {
-                        latitude = coordinate.latitude;
-                        longitude = coordinate.longitude;
-                        time = Date();
+                        latitude = coordinate.latitude
+                        longitude = coordinate.longitude
+                        time = Date()
                         if let cam = camera.camera {
                             camera = .camera(MapCamera(centerCoordinate: coordinate, distance: cam.distance))
                         }
                     }
-                    
+                } label: {
+                    Label("My Location", systemImage: "location.fill")
+                        .frame(maxWidth: .infinity)
                 }
-                
-                .buttonStyle(.borderedProminent)
-                Button("Send Location") {
-                    sendLocation(latitude, longitude, radius, time)
-                    
-                }.disabled(isSubmitting)
-                
-                
-            }
+                .buttonStyle(.bordered)
 
-            .padding()
-            .sheet(isPresented: $showModal) {
-                ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: false)
+                Button {
+                    sendLocation(latitude, longitude, radius, time)
+                } label: {
+                    Label("Find Food", systemImage: "fork.knife")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isSubmitting)
             }
         }
+        .padding()
+        .navigationTitle("Find Restaurants")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showModal) {
+            ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: false)
+        }
     }
+}
 

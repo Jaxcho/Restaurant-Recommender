@@ -3,9 +3,6 @@
 //  Restaurant Recommender
 //
 //  Created by Jax Choi on 5/17/26.
-
-//alice
-//secret123
 //
 
 import SwiftUI
@@ -36,13 +33,24 @@ struct LoginView: View {
 
     
     var body: some View {
-        TextField("Username", text: $username)
-        SecureField("Password", text: $password)
-        Button("Submit", action: login).disabled(isSubmitting)
-        if !errorMessage.isEmpty {
-            Text(errorMessage)
-                .foregroundColor(.red)
+        Form {
+            Section {
+                TextField("Username", text: $username)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                SecureField("Password", text: $password)
+            }
+
+            if !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+            }
+
+            Button("Log In", action: login)
+                .disabled(isSubmitting)
+                .frame(maxWidth: .infinity)
         }
+        .navigationTitle("Log In")
     }
 }
 

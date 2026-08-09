@@ -56,10 +56,11 @@ final class FunctionManager{
         return restaurants
     }
     
-    func pickLocation(address: String, radius: Double) async throws -> RestaurantDTO{
-        let response: RestaurantDTO  = try await apiClient.send(.pickRestaurant(address: address, radius: radius))
+    func pickLocation(address: String, radius: Double) async throws -> PickLocationDTO {
+        let response: PickLocationDTO = try await apiClient.send(.pickRestaurant(address: address, radius: radius))
+        self.lat = response.lat
+        self.lng = response.lng
         return response
-        
     }
 //
 //    func location() async {

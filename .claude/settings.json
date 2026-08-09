@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcodebuild -project \"Restaurant Recommender.xcodeproj\" *)",
+      "Bash(xcrun simctl list *)"
+    ]
+  }
+}

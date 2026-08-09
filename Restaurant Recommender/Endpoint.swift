@@ -107,7 +107,7 @@ extension Endpoint {
     
     nonisolated static func pickRestaurant(address: String, radius: Double) throws -> Endpoint {
         Endpoint(
-            path: "/pick_restaurant",
+            path: "/pick_location",
             method: .post,
             body: try JSONEncoder.api.encode(PickLocationPayload(address: address, radius: radius)),
             requiresAuth: true

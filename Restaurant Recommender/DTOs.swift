@@ -52,6 +52,12 @@ nonisolated struct RestaurantDTO: Decodable{
     let distance: Double
 }
 
+nonisolated struct PickLocationDTO: Decodable {
+    let lat: Double
+    let lng: Double
+    let restaurants: Array<FoundLocationsDTO>
+}
+
 nonisolated struct VisitedRestaurantDTO: Decodable, Identifiable {
     let placeId: String
     let hours: String

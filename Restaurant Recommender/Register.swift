@@ -31,15 +31,23 @@ struct RegisterView: View {
     }
     
     var body: some View {
-        VStack(spacing: 10) {
-            
-            TextField("Username", text: $username)
-            SecureField("Password", text: $password)
-            Button("Register", action: register).disabled(isSubmitting)
+        Form {
+            Section {
+                TextField("Username", text: $username)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                SecureField("Password", text: $password)
+            }
+
             if !errorMessage.isEmpty {
                 Text(errorMessage)
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
             }
+
+            Button("Register", action: register)
+                .disabled(isSubmitting)
+                .frame(maxWidth: .infinity)
         }
+        .navigationTitle("Register")
     }
 }
