@@ -68,7 +68,7 @@ extension Endpoint {
         )
     }
     
-    nonisolated static func findRestaurants(lat: Double, lng: Double, radius: Int, time: Date) throws -> Endpoint {
+    nonisolated static func findRestaurants(lat: Double, lng: Double, radius: Double, time: Date) throws -> Endpoint {
         Endpoint(
             path: "/find_restaurants",
             method: .post,
@@ -105,6 +105,17 @@ extension Endpoint {
         )
     }
     
+    nonisolated static func pickRestaurant(address: String, radius: Double) throws -> Endpoint {
+        Endpoint(
+            path: "/pick_restaurant",
+            method: .post,
+            body: try JSONEncoder.api.encode(PickLocationPayload(address: address, radius: radius)),
+            requiresAuth: true
+        )
+    }
+    
     nonisolated static let me = Endpoint(path: "users/me", method: .get)
 
 }
+
+

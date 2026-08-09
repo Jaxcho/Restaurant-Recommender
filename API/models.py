@@ -28,7 +28,9 @@ class UserForm(BaseModel):
 class UserInformation(BaseModel):
     lat: float
     lng: float
-    radius: int
+    radius: float
     time: str
+
+
     
     

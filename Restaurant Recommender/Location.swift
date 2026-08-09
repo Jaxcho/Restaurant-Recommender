@@ -115,7 +115,7 @@ struct LocationView: View {
     @State private var latitude: Double = 0
     @State private var longitude: Double = 0
     @State private var errorMessage: String?
-    @State private var radius: Int = 1
+    @State private var radius: Double = 1.0
     @State private var time: Date = Date()
     @State private var isSubmitting: Bool = false
     @State private var locations: Array<FoundLocationsDTO> = [];
@@ -126,10 +126,11 @@ struct LocationView: View {
     @State private var restaurantName: String = "";
     @State private var distance: Double = 0;
     @State private var address: String = ""
+    @State private var isEditing: Bool = false
     
     @State private var selectedPlaceId: String = "" // This is the current restaurant id that the modal uses that is used in mark visited
     
-    func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Int, _ time: Date){
+    func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Double, _ time: Date){
         errorMessage = nil
         isSubmitting = true
         Task {
@@ -195,9 +196,18 @@ struct LocationView: View {
                     camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 0.5))
                 }
             }
-                Text("Radius search")
-                TextField("Enter mile radius (Default 1)", value: $radius, format: .number)
-                        .keyboardType(.numberPad)
+                
+                Slider(
+                    value : $radius,
+                    in: 0...50,
+                    onEditingChanged: {
+                        editing in
+                        isEditing = editing
+                    }
+                    
+                )
+                Text("\(radius)").foregroundColor(isEditing ? .red : .blue)
+                
                 List(locations) { location in
                     HStack {
                         Text(location.name)
@@ -214,7 +224,6 @@ struct LocationView: View {
                     if let coordinate = locationManager.lastKnownLocation {
                         latitude = coordinate.latitude;
                         longitude = coordinate.longitude;
-//                        radius = 1;
                         time = Date();
                         if let cam = camera.camera {
                             camera = .camera(MapCamera(centerCoordinate: coordinate, distance: cam.distance))

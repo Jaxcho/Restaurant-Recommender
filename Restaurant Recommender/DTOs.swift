@@ -75,13 +75,18 @@ nonisolated struct RefreshTokenPayload: Encodable {
 nonisolated struct CoordinatesPayload: Encodable {
     let lat: Double
     let lng: Double
-    let radius: Int
+    let radius: Double
     let time : Date
 }
 
 nonisolated struct VisitedRestaurantPayload: Encodable {
     let placeId: String
     let dateVisited: String
+}
+
+nonisolated struct PickLocationPayload: Encodable {
+    let address: String
+    let radius: Double
 }
 
 

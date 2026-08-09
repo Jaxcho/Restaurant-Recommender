@@ -12,6 +12,7 @@ from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant
 from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from pick_location import geocode
 
 app = FastAPI(title="Authentication Demo", version="1.0.0")
 
@@ -46,6 +47,15 @@ async def visited_restaurants(body: VisitedRestaurant, user: User = Depends(get_
 async def restaurant_details(restaurant_id: str, current_user: User = Depends(get_current_active_user), lat: float = 0.0, lng: float = 0.0):
 
     return await place_details(restaurant_id, lat, lng)
+
+@app.post("/pick_location")
+async def pick_location(address: String, radius: Float):
+    response = geocode(address)
+    lat = response["lat"]
+    lng = response["lon"]    
+    data = await nearby_search(lat, lng, radius)
+    return data
+
 
 @app.post("/find_restaurants")
 async def find_restaurants(user_information: UserInformation, response: Response ,current_user: User = Depends(get_current_active_user)):

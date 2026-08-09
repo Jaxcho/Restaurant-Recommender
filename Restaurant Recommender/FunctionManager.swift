@@ -35,7 +35,7 @@ final class FunctionManager{
 //        let response: AuthResponseDTO = try await apiClient.send(try .register(username: username, password: password))
 //        try applyAuthResponse(response)
 //    }
-    func location(lat: Double, lng: Double, radius: Int, time: Date) async throws -> Array<FoundLocationsDTO> {
+    func location(lat: Double, lng: Double, radius: Double, time: Date) async throws -> Array<FoundLocationsDTO> {
         let response: Array<FoundLocationsDTO>  = try await apiClient.send(try .findRestaurants(lat: lat, lng: lng, radius: radius, time: time))
         self.lat = lat
         self.lng = lng
@@ -54,6 +54,12 @@ final class FunctionManager{
     func showVisited() async throws -> Array<VisitedRestaurantDTO>{
         let restaurants: Array<VisitedRestaurantDTO> = try await apiClient.send(Endpoint.showVisited())
         return restaurants
+    }
+    
+    func pickLocation(address: String, radius: Double) async throws -> RestaurantDTO{
+        let response: RestaurantDTO  = try await apiClient.send(.pickRestaurant(address: address, radius: radius))
+        return response
+        
     }
 //
 //    func location() async {
