@@ -62,6 +62,15 @@ final class FunctionManager{
         self.lng = response.lng
         return response
     }
+    
+    func getReviews(restaurant_id: String) async throws -> RestaurantReviewsDTO{
+        return try await apiClient.send(.getReviews(restaurant_id: restaurant_id))
+    }
+    
+    func postReview(placeId: String, rating: Double, content: String) async throws{
+        return try await apiClient.send(.postReview(placeId: placeId, rating:rating, content: content))
+    }
+    
 //
 //    func location() async {
 //        if let refreshToken = tokenStore.refreshToken, let endpoint = try? Endpoint.logout(refreshToken: refreshToken) {

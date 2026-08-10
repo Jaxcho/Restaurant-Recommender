@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from location import nearby_search, place_details
 from auth import (authenticate_user, create_access_token, get_current_active_user, fake_users_db, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash, decode_token, token_validation)
-from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant
-from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation
+from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant, DBReviews
+from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation, RestaurantRating
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from pick_location import geocode
@@ -58,6 +58,37 @@ async def pick_location(body:PickLocation, user = Depends(get_current_active_use
     lng = float(response["lon"])
     data = await nearby_search(lat, lng, body.radius*1609.344)
     return {"lat": lat, "lng": lng, "restaurants": data}
+
+@app.post("/post_review")
+async def rate_restaurant( restaurant_rating: RestaurantRating, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    
+    place_id = restaurant_rating.place_id
+    db_restaurant = db.query(DBRestaurant).filter(DBRestaurant.place_id == place_id).first()
+    rating = restaurant_rating.rating
+    content = restaurant_rating.content
+    db_user = db.query(DBUser).filter(DBUser.username == current_user.username).first()
+    # db_reviews= db.query(DBReviews)
+    db_review = DBReviews(
+        restaurant_id = db_restaurant.id,
+        reviewer_name =current_user.username,
+        reviewer_id=db_user.id,
+        content = content,
+        rating = rating)
+        
+    db.add(db_review)
+    db.commit()
+    db.refresh(db_review)
+    return 200
+
+@app.get("/get_reviews")
+async def get_reviews(restaurant_id: str, db:Session = Depends(get_db)):
+    #returns rating, reviews
+    db_restaurant = db.query(DBRestaurant).filter(DBRestaurant.place_id == restaurant_id).first()
+    reviews = db.query(DBReviews).filter(DBReviews.restaurant_id == db_restaurant.place_id)
+
+    return reviews
+
+
 
 
 @app.post("/find_restaurants")

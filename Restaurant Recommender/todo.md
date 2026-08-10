@@ -1,16 +1,12 @@
 # TODOs
 
-Add a hide restaurants button next to send location
-
 implement time to when visited
 add sorts to location and visited
 
-Add a limit on how far users can search radius
-
-Add user ability to chose location
-
 Add a search
 
+Ability to rate a restaurant - restaurants have average ratings on restaurant recommender app
+Recommendations based on ratings/ eater profile
 
 08/05/26:
 Implemented time_visited into the location view. I also added a date-decoder or whatever to jsoncoding. In backend, added new column to visited database.

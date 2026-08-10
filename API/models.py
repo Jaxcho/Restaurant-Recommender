@@ -34,5 +34,12 @@ class UserInformation(BaseModel):
 class PickLocation(BaseModel):
     address: str
     radius: float
+
+class RestaurantRating(BaseModel):
+    place_id: str
+    rating: float
+    content: str
+
+
     
     

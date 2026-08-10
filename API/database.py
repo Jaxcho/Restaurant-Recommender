@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, Double, ForeignKey, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -51,6 +51,7 @@ class DBReviews(Base):
     reviewer_name = Column(String, index = True)
     reviewer_id = Column(UUID(as_uuid = True), ForeignKey("users.id"))
     content = Column(String)
+    rating = Column(Double)
 
 class DBUserPreferences(Base):
     __tablename__ = "user_preferences"

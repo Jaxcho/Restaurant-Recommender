@@ -114,6 +114,23 @@ extension Endpoint {
         )
     }
     
+    nonisolated static func getReviews(restaurant_id: String) throws -> Endpoint {
+        Endpoint(
+            path: "/get_reviews",
+            method: .get,
+            requiresAuth: true
+        )
+    }
+    
+    nonisolated static func postReview(placeId: String, rating: Double, content: String) throws -> Endpoint{
+        Endpoint(
+            path: "/post_review",
+            method: .post,
+            body: try JSONEncoder.api.encode(RestaurantReviewPayload(placeId: placeId, rating: rating, content: content)),
+            requiresAuth: true
+        )
+    }
+    
     nonisolated static let me = Endpoint(path: "users/me", method: .get)
 
 }
