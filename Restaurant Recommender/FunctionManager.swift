@@ -63,7 +63,7 @@ final class FunctionManager{
         return response
     }
     
-    func getReviews(restaurant_id: String) async throws -> RestaurantReviewsDTO{
+    func getReviews(restaurant_id: String) async throws -> Array<RestaurantReviewsDTO>{
         return try await apiClient.send(.getReviews(restaurant_id: restaurant_id))
     }
     

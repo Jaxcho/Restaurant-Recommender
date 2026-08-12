@@ -70,6 +70,7 @@ struct ModalContentView: View {
     let placeId: String
     let distance: Double
     let showVisited: Bool
+    let 
     @State private var dateVisited: Date = Date()
     
     @Environment(FunctionManager.self) private var functionManager
@@ -102,6 +103,7 @@ struct ModalContentView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
+            
 
             if showVisited == false {
                 DatePicker("Date visited", selection: $dateVisited, displayedComponents: .date)

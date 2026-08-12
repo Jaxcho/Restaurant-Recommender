@@ -67,9 +67,9 @@ nonisolated struct VisitedRestaurantDTO: Decodable, Identifiable {
     let datesVisited: [String]}
 
 nonisolated struct RestaurantReviewsDTO: Decodable {
-    let restaurantId: String
+    let restaurantId: Int
     let reviewerName: String
-    let reviewerId: Int
+    let reviewerId: String
     let content: String
     let rating: Double
     }

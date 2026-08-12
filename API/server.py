@@ -84,9 +84,9 @@ async def rate_restaurant( restaurant_rating: RestaurantRating, current_user: Us
 async def get_reviews(restaurant_id: str, db:Session = Depends(get_db)):
     #returns rating, reviews
     db_restaurant = db.query(DBRestaurant).filter(DBRestaurant.place_id == restaurant_id).first()
-    reviews = db.query(DBReviews).filter(DBReviews.restaurant_id == db_restaurant.place_id)
+    reviews = db.query(DBReviews).filter(DBReviews.restaurant_id == db_restaurant.id)
 
-    return reviews
+    return reviews.all()
 
 
 

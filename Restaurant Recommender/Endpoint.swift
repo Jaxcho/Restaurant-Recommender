@@ -117,6 +117,9 @@ extension Endpoint {
     nonisolated static func getReviews(restaurant_id: String) throws -> Endpoint {
         Endpoint(
             path: "/get_reviews",
+            queryItems: [
+                URLQueryItem(name: "restaurant_id", value: String(restaurant_id))
+            ],
             method: .get,
             requiresAuth: true
         )
