@@ -65,14 +65,16 @@ struct ModalContentView: View {
     
     let location: Array<Double>
     let hours: Array<OpeningHoursStruct>
-    let restaurantReview: String
     let restaurantName: String
     let placeId: String
     let distance: Double
     let showVisited: Bool
-    let 
+    let restaurantReview: String
+
     @State private var dateVisited: Date = Date()
-    
+    @State private var newReviewText: String = ""
+    @State private var isSubmittingReview: Bool = false
+
     @Environment(FunctionManager.self) private var functionManager
     // Environment property to dismiss the view programmatically
     @Environment(\.dismiss) var dismiss
@@ -92,7 +94,7 @@ struct ModalContentView: View {
             Divider()
 
             ScrollView {
-                if restaurantReview.isEmpty {
+                if restaurantReview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text("No review summary available.")
                         .font(.body)
                         .foregroundStyle(.secondary)
@@ -104,7 +106,6 @@ struct ModalContentView: View {
                 }
             }
             
-
             if showVisited == false {
                 DatePicker("Date visited", selection: $dateVisited, displayedComponents: .date)
 
@@ -206,7 +207,6 @@ struct LocationView: View {
                 restaurantName = restaurant_name
                 hours = restaurant.currentOpeningHours
                 location = restaurant.location
-                
                 
                 showModal = true
             } catch {
@@ -341,7 +341,15 @@ struct LocationView: View {
         .navigationTitle("Find Restaurants")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showModal) {
-            ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: false)
+            ModalContentView(
+                location: location,
+                hours: hours,
+                restaurantName: restaurantName,
+                placeId: selectedPlaceId,
+                distance: distance,
+                showVisited: false,
+                restaurantReview: restaurantReview
+            )
         }
     }
 }

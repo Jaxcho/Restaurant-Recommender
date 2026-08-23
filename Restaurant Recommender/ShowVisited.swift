@@ -102,7 +102,7 @@ struct ShowVisited: View {
             loadVisited()
         }
         .sheet(isPresented: $showModal) {
-            ModalContentView(location: location, hours: hours, restaurantReview: restaurantReview, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: true)
+            ModalContentView(location: location, hours: hours,  restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: true, restaurantReview: restaurantReview)
         }
     }
 }
