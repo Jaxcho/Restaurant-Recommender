@@ -20,6 +20,7 @@ struct ShowVisited: View {
     @State private var restaurantName: String = ""
     @State private var showModal: Bool = false
     @State private var selectedPlaceId: String = ""
+    @State private var userReviews: Array<RestaurantReviewsDTO> = []
 
     func loadVisited() {
         errorMessage = nil
@@ -102,7 +103,7 @@ struct ShowVisited: View {
             loadVisited()
         }
         .sheet(isPresented: $showModal) {
-            ModalContentView(location: location, hours: hours,  restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: true, restaurantReview: restaurantReview)
+            ModalContentView(location: location, hours: hours,  restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: true, userReviews: userReviews, restaurantReview: restaurantReview)
         }
     }
 }

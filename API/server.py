@@ -99,7 +99,10 @@ async def find_restaurants(user_information: UserInformation, response: Response
     radius = user_information.radius*1609.344
     time = user_information.time
     print(lat, lng, radius)
+    # check db first for lat lng radius restaurants, if not found. keep going. If found, return data from db
     data = await nearby_search(lat, lng, radius)
+    # store data into db
+    # send data from db
     return data
      
 @app.get("/")

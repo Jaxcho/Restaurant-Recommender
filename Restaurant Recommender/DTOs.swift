@@ -66,13 +66,14 @@ nonisolated struct VisitedRestaurantDTO: Decodable, Identifiable {
     let name: String
     let datesVisited: [String]}
 
-nonisolated struct RestaurantReviewsDTO: Decodable {
+nonisolated struct RestaurantReviewsDTO: Decodable, Identifiable {
+    let id: Int
     let restaurantId: Int
     let reviewerName: String
     let reviewerId: String
     let content: String
     let rating: Double
-    }
+}
 
 // MARK: - Request payloads : Body of Request
 

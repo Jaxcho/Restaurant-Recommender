@@ -69,8 +69,11 @@ struct ModalContentView: View {
     let placeId: String
     let distance: Double
     let showVisited: Bool
+    let userReviews: Array<RestaurantReviewsDTO>
     let restaurantReview: String
-
+//    let rating: Int
+    @State private var rating: Double = 0
+    @State private var userRestaurantReview: String = ""
     @State private var dateVisited: Date = Date()
     @State private var newReviewText: String = ""
     @State private var isSubmittingReview: Bool = false
@@ -103,6 +106,34 @@ struct ModalContentView: View {
                     Text(restaurantReview)
                         .font(.body)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            
+            Text("Rating: \(Int(rating))")
+                            .font(.title)
+                        
+                        // 3. Add the Slider with a range from 0 to 100
+                        Slider(value: $rating, in: 0...5)
+                            .padding()
+            
+            TextField("What do you think? ", text: $userRestaurantReview)
+                            .textFieldStyle(.roundedBorder)
+                            .padding()
+            
+            
+            Button{
+                Task{
+                    try await functionManager.postReview(placeId: placeId, rating: rating, content: userRestaurantReview)
+                    dismiss()
+                }
+            }label: {
+                Label("Submit", systemImage: "checkmark.circle.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            List{
+                ForEach(userReviews){ review in
+                    Text(review.content)
                 }
             }
             
@@ -152,6 +183,7 @@ struct LocationView: View {
     @State private var distance: Double = 0;
     @State private var address: String = ""
     @State private var isEditing: Bool = false
+    @State private var userReviews: Array<RestaurantReviewsDTO> = []
     
     @State private var selectedPlaceId: String = "" // This is the current restaurant id that the modal uses that is used in mark visited
     
@@ -202,6 +234,7 @@ struct LocationView: View {
             }
             do {
                 let restaurant = try await functionManager.restaurantInfo(restaurant_id: restaurant_id)
+                userReviews = try await functionManager.getReviews(restaurant_id: restaurant_id)
                 distance = restaurant.distance
                 restaurantReview = restaurant.reviewSummary
                 restaurantName = restaurant_name
@@ -348,9 +381,11 @@ struct LocationView: View {
                 placeId: selectedPlaceId,
                 distance: distance,
                 showVisited: false,
+                userReviews: userReviews,
                 restaurantReview: restaurantReview
             )
         }
     }
 }
+
 
