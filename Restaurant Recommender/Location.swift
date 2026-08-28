@@ -83,84 +83,173 @@ struct ModalContentView: View {
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                header
+
+                summaryCard
+
+                writeReviewCard
+
+                if userReviews.isEmpty == false {
+                    reviewsSection
+                }
+
+                if showVisited == false {
+                    markVisitedCard
+                }
+
+                Button("Dismiss") {
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
+                .frame(maxWidth: .infinity)
+            }
+            .padding()
+        }
+        .background(Color(.systemGroupedBackground))
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    // MARK: - Sections
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text(restaurantName)
                 .font(.title2)
                 .bold()
 
             if showVisited == false {
-                Label("\(distance, specifier: "%.1f") away", systemImage: "location")
+                Label("\(distance, specifier: "%.1f") mi away", systemImage: "location.fill")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+        }
+    }
 
-            Divider()
+    private var summaryCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Summary", systemImage: "text.quote")
+                .font(.headline)
 
-            ScrollView {
-                if restaurantReview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("No review summary available.")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    Text(restaurantReview)
-                        .font(.body)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+            if restaurantReview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("No review summary available.")
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(restaurantReview)
             }
-            
-            Text("Rating: \(Int(rating))")
-                            .font(.title)
-                        
-                        // 3. Add the Slider with a range from 0 to 100
-                        Slider(value: $rating, in: 0...5)
-                            .padding()
-            
-            TextField("What do you think? ", text: $userRestaurantReview)
-                            .textFieldStyle(.roundedBorder)
-                            .padding()
-            
-            
-            Button{
-                Task{
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var writeReviewCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Leave a review", systemImage: "square.and.pencil")
+                .font(.headline)
+
+            StarRatingPicker(rating: $rating)
+
+            TextField("What do you think?", text: $userRestaurantReview, axis: .vertical)
+                .lineLimit(2...4)
+                .textFieldStyle(.roundedBorder)
+
+            Button {
+                isSubmittingReview = true
+                Task {
+                    defer { isSubmittingReview = false }
                     try await functionManager.postReview(placeId: placeId, rating: rating, content: userRestaurantReview)
                     dismiss()
                 }
-            }label: {
+            } label: {
                 Label("Submit", systemImage: "checkmark.circle.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            List{
-                ForEach(userReviews){ review in
-                    Text(review.content)
-                }
-            }
-            
-            if showVisited == false {
-                DatePicker("Date visited", selection: $dateVisited, displayedComponents: .date)
+            .disabled(isSubmittingReview || rating == 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+    }
 
-                Button {
-                    Task {
-                        try await functionManager.visited(placeId: placeId, dateVisited: dateVisited)
-                        dismiss()
+    private var reviewsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Reviews", systemImage: "person.2.fill")
+                .font(.headline)
+
+            ForEach(userReviews) { review in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(review.reviewerName)
+                            .font(.subheadline)
+                            .bold()
+                        Spacer()
+                        StarRatingView(rating: review.rating)
                     }
-                } label: {
-                    Label("Mark Visited", systemImage: "checkmark.circle.fill")
-                        .frame(maxWidth: .infinity)
+                    Text(review.content)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(.background, in: RoundedRectangle(cornerRadius: 12))
             }
+        }
+    }
 
-            Button("Dismiss") {
-                dismiss()
+    private var markVisitedCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            DatePicker("Date visited", selection: $dateVisited, displayedComponents: .date)
+
+            Button {
+                Task {
+                    try await functionManager.visited(placeId: placeId, dateVisited: dateVisited)
+                    dismiss()
+                }
+            } label: {
+                Label("Mark Visited", systemImage: "checkmark.circle.fill")
+                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
-            .frame(maxWidth: .infinity)
+            .buttonStyle(.borderedProminent)
         }
         .padding()
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+/// A tappable 5-star input used when writing a review.
+struct StarRatingPicker: View {
+    @Binding var rating: Double
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(1...5, id: \.self) { star in
+                Image(systemName: Double(star) <= rating ? "star.fill" : "star")
+                    .font(.title2)
+                    .foregroundStyle(.yellow)
+                    .onTapGesture {
+                        rating = Double(star)
+                    }
+            }
+        }
+    }
+}
+
+/// A read-only 5-star display for showing an existing review's rating.
+struct StarRatingView: View {
+    let rating: Double
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(1...5, id: \.self) { star in
+                Image(systemName: Double(star) <= rating ? "star.fill" : "star")
+                    .font(.caption)
+                    .foregroundStyle(.yellow)
+            }
+        }
     }
 }
 
@@ -389,3 +478,20 @@ struct LocationView: View {
 }
 
 
+
+#Preview("Modal") {
+    ModalContentView(
+        location: [37.33, -122.03],
+        hours: [],
+        restaurantName: "Taqueria La Espuela",
+        placeId: "preview-place-id",
+        distance: 1.4,
+        showVisited: false,
+        userReviews: [
+            RestaurantReviewsDTO(id: 1, restaurantId: 1, reviewerName: "alice", reviewerId: "u1", content: "Great al pastor, quick service.", rating: 5),
+            RestaurantReviewsDTO(id: 2, restaurantId: 1, reviewerName: "bob", reviewerId: "u2", content: "Solid but the line gets long at lunch.", rating: 3.5)
+        ],
+        restaurantReview: "Locals praise the fresh tortillas and generous portions. Most reviews mention friendly staff and fast counter service, though parking can be tight on weekends."
+    )
+    .environment(FunctionManager(apiClient: APIClient(baseURL: AppEnvironment.apiBaseURL)))
+}

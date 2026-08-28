@@ -19,6 +19,21 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+class DBQueries(Base):
+    __tablename__ = "queries"
+
+    id = Column(Integer, primary_key = True, index = True)
+    lat = Column(Double)
+    lng = Column(Double)
+    radius = Column(Double)
+
+class DBQueriedRestaurants(Base):
+    __tablename__ = "queried_restaurants"
+
+    id = Column(Integer, primary_key= True)
+    queried_id = Column(Integer, ForeignKey("queries.id"))
+    restaurant_id = Column(Integer, ForeignKey("restaurants.id"))
+
 class DBUser(Base):
     __tablename__ = "users"
 

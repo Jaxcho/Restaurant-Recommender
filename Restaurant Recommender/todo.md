@@ -13,3 +13,7 @@ Implemented time_visited into the location view. I also added a date-decoder or 
 
 08/06/25:
 Added picklocation, added endpoint + backend + DTO and Model. Used geocode to process an address and return coordinates
+
+Add another DB based on user search requests
+Table 1:    Restaurants,Search radius, Location, Search ID
+

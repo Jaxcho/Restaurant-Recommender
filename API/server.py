@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from location import nearby_search, place_details
 from auth import (authenticate_user, create_access_token, get_current_active_user, fake_users_db, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash, decode_token, token_validation)
-from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant, DBReviews
+from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant, DBReviews, DBQueries, DBQueriedRestaurants
 from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation, RestaurantRating
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -92,15 +92,45 @@ async def get_reviews(restaurant_id: str, db:Session = Depends(get_db)):
 
 
 @app.post("/find_restaurants")
-async def find_restaurants(user_information: UserInformation, response: Response ,current_user: User = Depends(get_current_active_user)):
+async def find_restaurants(user_information: UserInformation, response: Response ,current_user: User = Depends(get_current_active_user), db:Session = Depends(get_db)):
      
     lat = user_information.lat
     lng = user_information.lng
     radius = user_information.radius*1609.344
     time = user_information.time
     print(lat, lng, radius)
+    db_queries = db.query(DBQueries).filter(DBQueries.radius == radius, DBQueries.lat == lat, DBQueries.lng == lng).all()
+    if len(db_queries) > 0:
+        data = db.query(DBQueriedRestaurants).join(DBRestaurant).filter(DBQueriedRestaurants.queried_id == db_queries.id, DBQueriedRestaurants.restaurant_id == DBRestaurant.id)
+        return data
+        # db_queried_restaurants = db.query(DBQueriedRestaurants).filter(DBQueriedRestaurants.queried_id == db_queries.id)
+        
+
+
     # check db first for lat lng radius restaurants, if not found. keep going. If found, return data from db
     data = await nearby_search(lat, lng, radius)
+    db_query = DBQueries(lat = lat, lng = lng, radius = radius)
+    db.add(db_query)
+    db.flush()
+    query_id = db_query.id
+    db.commit()
+    print(data)
+    restaurant_ids = []
+    for restaurant in data:
+        place_id = restaurant["id"]
+        rest = db.query(DBRestaurant).filter(DBRestaurant.place_id == place_id).first()
+        # print(rest)
+        # return data
+        restaurant_ids.append(db.query(DBRestaurant).filter(DBRestaurant.place_id == place_id).first()[0])
+
+    for id in restaurant_ids:
+        queried_restaurant = DBQueriedRestaurants(
+            queried_id = query_id,
+            restaurant_id = id
+        )
+        db.add(queried_restaurant)
+    db.commit()
+    db.refresh()
     # store data into db
     # send data from db
     return data
