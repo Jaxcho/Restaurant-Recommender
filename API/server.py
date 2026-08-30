@@ -101,7 +101,7 @@ async def find_restaurants(user_information: UserInformation, response: Response
     print(lat, lng, radius)
     db_queries = db.query(DBQueries).filter(DBQueries.radius == radius, DBQueries.lat == lat, DBQueries.lng == lng).all()
     if len(db_queries) > 0:
-        data = db.query(DBQueriedRestaurants).join(DBRestaurant).filter(DBQueriedRestaurants.queried_id == db_queries.id, DBQueriedRestaurants.restaurant_id == DBRestaurant.id)
+        data = db.query(DBQueriedRestaurants).join(DBRestaurant).filter(DBQueriedRestaurants.queried_id == db_queries[0].id, DBQueriedRestaurants.restaurant_id == DBRestaurant.id)
         return data
         # db_queried_restaurants = db.query(DBQueriedRestaurants).filter(DBQueriedRestaurants.queried_id == db_queries.id)
         
@@ -119,9 +119,15 @@ async def find_restaurants(user_information: UserInformation, response: Response
     for restaurant in data:
         place_id = restaurant["id"]
         rest = db.query(DBRestaurant).filter(DBRestaurant.place_id == place_id).first()
+        if rest is None:
+            rest = DBRestaurant(place_id=place_id)  # + name/rating from `restaurant`
+            db.add(rest)
+            db.flush()
+        restaurant_ids.append(rest.id)
+
         # print(rest)
         # return data
-        restaurant_ids.append(db.query(DBRestaurant).filter(DBRestaurant.place_id == place_id).first()[0])
+        restaurant_ids.append(rest.id)
 
     for id in restaurant_ids:
         queried_restaurant = DBQueriedRestaurants(
@@ -130,7 +136,6 @@ async def find_restaurants(user_information: UserInformation, response: Response
         )
         db.add(queried_restaurant)
     db.commit()
-    db.refresh()
     # store data into db
     # send data from db
     return data
