@@ -67,8 +67,9 @@ final class FunctionManager{
         return try await apiClient.send(.getReviews(restaurant_id: restaurant_id))
     }
     
-    func postReview(placeId: String, rating: Double, content: String) async throws{
-        return try await apiClient.send(.postReview(placeId: placeId, rating:rating, content: content))
+    func postReview(placeId: String, rating: Double, content: String) async throws -> RestaurantReviewsDTO{
+        let newReview: RestaurantReviewsDTO = try await apiClient.send(.postReview(placeId: placeId, rating:rating, content: content))
+        return newReview
     }
     
 //

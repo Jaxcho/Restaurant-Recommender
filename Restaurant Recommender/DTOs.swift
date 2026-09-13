@@ -60,8 +60,6 @@ nonisolated struct PickLocationDTO: Decodable {
 
 nonisolated struct VisitedRestaurantDTO: Decodable, Identifiable {
     let placeId: String
-    let hours: String
-    let location: String
     let id: Int
     let name: String
     let datesVisited: [String]}
@@ -74,6 +72,9 @@ nonisolated struct RestaurantReviewsDTO: Decodable, Identifiable {
     let content: String
     let rating: Double
 }
+
+
+
 
 // MARK: - Request payloads : Body of Request
 
@@ -108,6 +109,4 @@ nonisolated struct PickLocationPayload: Encodable {
     let address: String
     let radius: Double
 }
-
-
 

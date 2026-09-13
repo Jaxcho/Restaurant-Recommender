@@ -21,7 +21,11 @@ struct ShowVisited: View {
     @State private var showModal: Bool = false
     @State private var selectedPlaceId: String = ""
     @State private var userReviews: Array<RestaurantReviewsDTO> = []
-
+    
+    func searchRestaurants() {
+        
+    }
+    
     func loadVisited() {
         errorMessage = nil
         isSubmitting = true
@@ -46,6 +50,7 @@ struct ShowVisited: View {
             }
             do {
                 let restaurant = try await functionManager.restaurantInfo(restaurant_id: restaurant_id)
+                userReviews = try await functionManager.getReviews(restaurant_id: restaurant_id)
                 distance = restaurant.distance
                 restaurantReview = restaurant.reviewSummary
                 restaurantName = restaurant_name

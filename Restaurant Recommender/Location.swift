@@ -16,8 +16,32 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
     
     private(set) var lastKnownLocation: CLLocationCoordinate2D?
     private let manager = CLLocationManager()
-    
-    
+    // Callers waiting for the next location fix; resumed in the delegate callbacks.
+    private var locationContinuation: CheckedContinuation<CLLocationCoordinate2D?, Never>?
+
+    /// Returns the current location, waiting for a fix if one isn't available yet.
+    /// Returns nil if access is denied/restricted or the fix fails.
+    func currentLocation() async -> CLLocationCoordinate2D? {
+        checkLocationAuthorization()
+
+        switch manager.authorizationStatus {
+        case .denied, .restricted:
+            return nil
+        default:
+            break
+        }
+
+        if let location = lastKnownLocation {
+            return location
+        }
+
+        // A second caller replaces the first; resume the old one so it never hangs.
+        locationContinuation?.resume(returning: nil)
+        return await withCheckedContinuation { continuation in
+            locationContinuation = continuation
+        }
+    }
+
     func checkLocationAuthorization() {
         
         manager.delegate = self
@@ -28,10 +52,14 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
             
         case .restricted://The user cannot change this app’s status, possibly due to active restrictions such as parental controls being in place.
             print("Location restricted")
-            
+            locationContinuation?.resume(returning: nil)
+            locationContinuation = nil
+
         case .denied://The user dennied your app to get location or disabled the services location or the phone is in airplane mode
             print("Location denied")
-            
+            locationContinuation?.resume(returning: nil)
+            locationContinuation = nil
+
         case .authorizedAlways://This authorization allows you to use all location services and receive location events whether or not your app is in use.
             print("Location authorizedAlways")
             manager.requestLocation()
@@ -53,11 +81,14 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         lastKnownLocation = locations.first?.coordinate
-
+        locationContinuation?.resume(returning: lastKnownLocation)
+        locationContinuation = nil
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("Location failed: \(error.localizedDescription)")
+        locationContinuation?.resume(returning: nil)
+        locationContinuation = nil
     }
 }
 
@@ -69,7 +100,7 @@ struct ModalContentView: View {
     let placeId: String
     let distance: Double
     let showVisited: Bool
-    let userReviews: Array<RestaurantReviewsDTO>
+    @State var userReviews: Array<RestaurantReviewsDTO>
     let restaurantReview: String
 //    let rating: Int
     @State private var rating: Double = 0
@@ -91,7 +122,7 @@ struct ModalContentView: View {
 
                 writeReviewCard
 
-                if userReviews.isEmpty == false {
+                if self.userReviews.isEmpty == false {
                     reviewsSection
                 }
 
@@ -160,8 +191,12 @@ struct ModalContentView: View {
                 isSubmittingReview = true
                 Task {
                     defer { isSubmittingReview = false }
-                    try await functionManager.postReview(placeId: placeId, rating: rating, content: userRestaurantReview)
+                    let newReview = try await functionManager.postReview(placeId: placeId, rating: rating, content: userRestaurantReview)
+                    print("new review")
+                    userReviews.append(newReview)
+                    print("\(newReview)")
                     dismiss()
+                    
                 }
             } label: {
                 Label("Submit", systemImage: "checkmark.circle.fill")
@@ -433,24 +468,26 @@ struct LocationView: View {
             }
 
             HStack {
-                Button {
-                    locationManager.checkLocationAuthorization()
-                    if let coordinate = locationManager.lastKnownLocation {
-                        latitude = coordinate.latitude
-                        longitude = coordinate.longitude
-                        time = Date()
-                        if let cam = camera.camera {
-                            camera = .camera(MapCamera(centerCoordinate: coordinate, distance: cam.distance))
-                        }
-                    }
-                } label: {
-                    Label("My Location", systemImage: "location.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
+                
 
                 Button {
-                    sendLocation(latitude, longitude, radius, time)
+                    if !address.trimmingCharacters(in: .whitespaces).isEmpty {
+                        pickLocation(address: address, radius: radius)
+                    } else {
+                        Task {
+                            if let coordinate = await locationManager.currentLocation() {
+                                latitude = coordinate.latitude
+                                longitude = coordinate.longitude
+                                time = Date()
+                                if let cam = camera.camera {
+                                    camera = .camera(MapCamera(centerCoordinate: coordinate, distance: cam.distance))
+                                }
+                                sendLocation(latitude, longitude, radius, time)
+                            } else {
+                                errorMessage = "Couldn't get your location — allow location access or search an address."
+                            }
+                        }
+                    }
                 } label: {
                     Label("Find Food", systemImage: "fork.knife")
                         .frame(maxWidth: .infinity)

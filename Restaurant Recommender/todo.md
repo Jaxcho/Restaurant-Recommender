@@ -1,6 +1,5 @@
 # TODOs
 
-implement time to when visited
 add sorts to location and visited
 
 Add a search

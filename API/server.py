@@ -22,13 +22,13 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, 
 async def visited_restaurants(body: VisitedRestaurant, user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
     db_user = db.query(DBUser).filter(DBUser.username == user.username).first()
     db_place = db.query(DBRestaurant).filter(DBRestaurant.place_id == body.place_id).first()
-    if db_place == None:
-        # fetch details from Google
-        # build a DBRestaurant
-        # save it
+    if db_place is None or db_place.hours is None:
         details = await place_details(body.place_id, 0, 0)
-        db_place = DBRestaurant(place_id=body.place_id,name = details["name"], hours=str(details["current_opening_hours"]), location=str(details["location"]))
-        db.add(db_place)
+        if db_place is None:
+            db_place = DBRestaurant(place_id=body.place_id, name=details["name"])
+            db.add(db_place)
+        db_place.hours = str(details["current_opening_hours"])
+        db_place.location = str(details["location"])
         db.commit()
         db.refresh(db_place)
     try:
@@ -78,14 +78,16 @@ async def rate_restaurant( restaurant_rating: RestaurantRating, current_user: Us
     db.add(db_review)
     db.commit()
     db.refresh(db_review)
-    return 200
+    return {"id": db_review.id, "restaurant_id": db_review.restaurant_id, "reviewer_name": db_review.reviewer_name,"reviewer_id": db_review.reviewer_id,"content": content, "rating": db_review.rating}
 
 @app.get("/get_reviews")
 async def get_reviews(restaurant_id: str, db:Session = Depends(get_db)):
     #returns rating, reviews
     db_restaurant = db.query(DBRestaurant).filter(DBRestaurant.place_id == restaurant_id).first()
-    reviews = db.query(DBReviews).filter(DBReviews.restaurant_id == db_restaurant.id)
+    if db_restaurant is None:
+        return []  # never stored this restaurant, so it has no reviews yet
 
+    reviews = db.query(DBReviews).filter(DBReviews.restaurant_id == db_restaurant.id)
     return reviews.all()
 
 
@@ -98,41 +100,44 @@ async def find_restaurants(user_information: UserInformation, response: Response
     lng = user_information.lng
     radius = user_information.radius*1609.344
     time = user_information.time
-    print(lat, lng, radius)
-    db_queries = db.query(DBQueries).filter(DBQueries.radius == radius, DBQueries.lat == lat, DBQueries.lng == lng).all()
-    if len(db_queries) > 0:
-        data = db.query(DBQueriedRestaurants).join(DBRestaurant).filter(DBQueriedRestaurants.queried_id == db_queries.id, DBQueriedRestaurants.restaurant_id == DBRestaurant.id)
-        return data
-        # db_queried_restaurants = db.query(DBQueriedRestaurants).filter(DBQueriedRestaurants.queried_id == db_queries.id)
+
+    db_query = db.query(DBQueries).filter(
+        DBQueries.radius == radius,
+        DBQueries.lat == lat,
+        DBQueries.lng == lng,
+    ).first()
+
+    if db_query is not None:
+        saved = (
+            db.query(DBRestaurant)
+            .join(DBQueriedRestaurants, DBQueriedRestaurants.restaurant_id == DBRestaurant.id)
+            .filter(DBQueriedRestaurants.queried_id == db_query.id)
+            .all()
+        )
+        if saved:  # only trust the cache if it actually has restaurants
+            return [{"id": r.place_id, "name": r.name} for r in saved]
         
 
 
-    # check db first for lat lng radius restaurants, if not found. keep going. If found, return data from db
     data = await nearby_search(lat, lng, radius)
-    db_query = DBQueries(lat = lat, lng = lng, radius = radius)
+
+    db_query = DBQueries(lat=lat, lng=lng, radius=radius)
     db.add(db_query)
-    db.flush()
-    query_id = db_query.id
-    db.commit()
-    print(data)
-    restaurant_ids = []
+    db.flush()  
+
     for restaurant in data:
         place_id = restaurant["id"]
-        rest = db.query(DBRestaurant).filter(DBRestaurant.place_id == place_id).first()
-        # print(rest)
-        # return data
-        restaurant_ids.append(db.query(DBRestaurant).filter(DBRestaurant.place_id == place_id).first()[0])
 
-    for id in restaurant_ids:
-        queried_restaurant = DBQueriedRestaurants(
-            queried_id = query_id,
-            restaurant_id = id
-        )
-        db.add(queried_restaurant)
+        db_restaurant = db.query(DBRestaurant).filter(DBRestaurant.place_id == place_id).first()
+        if db_restaurant is None:
+            db_restaurant = DBRestaurant(place_id=place_id, name=restaurant["name"])
+            db.add(db_restaurant)
+            db.flush()  
+
+        db.add(DBQueriedRestaurants(queried_id=db_query.id, restaurant_id=db_restaurant.id))
+
     db.commit()
-    db.refresh()
-    # store data into db
-    # send data from db
+    print(data)
     return data
      
 @app.get("/")
