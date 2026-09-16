@@ -64,6 +64,12 @@ async def rate_restaurant( restaurant_rating: RestaurantRating, current_user: Us
     
     place_id = restaurant_rating.place_id
     db_restaurant = db.query(DBRestaurant).filter(DBRestaurant.place_id == place_id).first()
+    if db_restaurant is None:
+        details = await place_details(place_id, 0, 0)
+        db_restaurant = DBRestaurant(place_id=place_id, name=details["name"])
+        db.add(db_restaurant)
+        db.commit()
+        db.refresh(db_restaurant)
     rating = restaurant_rating.rating
     content = restaurant_rating.content
     db_user = db.query(DBUser).filter(DBUser.username == current_user.username).first()
