@@ -26,6 +26,9 @@ class RecommendationMap:
 
         self.map = similar_ratings
         return self.map
+    def find_similarity(self, db, user):
+        
+
 
 
 async def test_map():
