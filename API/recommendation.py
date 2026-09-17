@@ -4,7 +4,9 @@ import asyncio
 
 class RecommendationMap:
     def __init__(self):
-        self.map = {}
+        self.map = {} # {UID:{rating:resturant}
+        self.similarity = {} #{user: similarity,
+        self.restaurants = {}
 
     def fill_map(self, db, user):
         #restaurants user has rated
@@ -26,9 +28,10 @@ class RecommendationMap:
 
         self.map = similar_ratings
         return self.map
-    def find_similarity(self, db, user):
-        
-
+    def find_similarity(self, user):
+        pass
+    def order_restaurants(self, restaurants):
+        pass
 
 
 async def test_map():
