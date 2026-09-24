@@ -9,3 +9,5 @@ python-multipart
 pydantic
 google-maps-places
 geopy
+pandas
+scikit-surprise

@@ -2,8 +2,8 @@ from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant, DBRev
 from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation, RestaurantRating
 import asyncio
 import numpy as np
-
-
+import pandas as pd
+from surprise import Dataset, Reader, SVD
 
 
 class RecommendationMap:
@@ -16,18 +16,15 @@ class RecommendationMap:
         self.restaurant_ratings = {} # {restaurant: Expected rating}
 
     def users(self, db, user):
-        #restaurants user has rated
-        #go through each and find the other reviewers
+        #DBs
         
         self.user_restaurants = db.query( DBReviews.rating, DBRestaurant.id).filter(DBReviews.reviewer_id == user, DBRestaurant.id==DBReviews.restaurant_id).all() # rating, restaurant ID 
         restaurant_ids = [restaurant for _, restaurant in self.user_restaurants]
 
-        # all_reviews = db.query(DBReviews.reviewer_id, DBReviews.rating, DBReviews.restaurant_id).filter(DBReviews.reviewer_id!=user).all() #Reviewer ID, rating, restaurant ID
         all_reviews = db.query(DBReviews.reviewer_id, DBReviews.rating, DBReviews.restaurant_id).filter(DBReviews.restaurant_id.in_(restaurant_ids), DBReviews.reviewer_id!=user).all() #Reviewer ID, rating, restaurant ID
 
-        # self.user_restuarants = db.query( DBReviews.rating, DBRestaurant.id).filter(DBReviews.reviewer_id == user, DBRestaurant.id==DBReviews.restaurant_id).all() # rating, restaurant ID 
 
-
+        #Averaging out multiple ratings and returns data
 
         for uuid, rating, restaurant in all_reviews:
             if uuid not in self.similar_users:
@@ -42,6 +39,8 @@ class RecommendationMap:
 
         
     def find_similarity(self):
+
+        # Loops through each user and compares with main user
         for user in self.final_users:
             user_restaurants = {}
             users = []
@@ -52,11 +51,15 @@ class RecommendationMap:
                     if restaurant == val[1]:
                         user_restaurants[restaurant] = val[0]
                         break     
-                    
+
+            # Finding matching rated restaurants
+            
             for restaurant in user_restaurants:
                 users.append(user_restaurants[restaurant])
             for restaurant in restaurants:
                 other_restaurants.append(restaurants[restaurant])
+
+            # Similarity function
             similarity = np.corrcoef(users, other_restaurants)
             print(similarity)
             self.user_similarity[user] = similarity[0][1]
@@ -66,25 +69,33 @@ class RecommendationMap:
     def order_restaurants(self, restaurants):
         pass
 
-
 async def test_map():
-    user = "6e892122-802c-4468-b0d2-b72c3cda1396"
     db = SessionLocal()
-    # user_restaurants = db.query(DBReviews).filter(DBReviews.reviewer_name == user)
-    user_map = RecommendationMap()
-    user_map.users(db, user)
-    user_map.find_similarity()
-    print(vars(user_map), "USERMAP")
-    # print(user_map.find_similarity())
+    map = RecommendationMap
+    print(vars(map))
     db.close()
 
 if __name__ == "__main__":
     asyncio.run(test_map())
 
 
-"""
- (6e892122-802c-4468-b0d2-b72c3cda1396,1)
- (c81606d8-6ef3-4980-922f-47a69acfedf8,2) -> 1
- (394052a8-a47c-434c-b8be-dd6facef28de,3) -> 3
- (f0bcbcd6-825a-4966-b609-e4a3d09df652,4) -> 4
-"""
+
+
+# def train_model(db):
+#     reviews = db.query(DBReviews.reviewer_id, DBReviews.restaurant_id, DBReviews.rating).all()
+#     df = pd.DataFrame(reviews, columns=["user", "restaurant", "rating"])
+#     df["user"] = df["user"].astype(str)
+#     df["restaurant"] = df["restaurant"].astype(str)
+
+#     reader = Reader(rating_scale=(1, 5))
+#     data = Dataset.load_from_df(df[["user", "restaurant", "rating"]], reader)
+
+#     trainset = data.build_full_trainset()
+#     model = SVD()
+#     model.fit(trainset)
+#     return model
+
+
+# def predict_rating(model, user_id, restaurant_id):
+#     prediction = model.predict(str(user_id), str(restaurant_id))
+#     return prediction.est

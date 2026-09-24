@@ -1,0 +1,8 @@
+- Fix the 20 maximum restaurants
+- Add the search function
+- Add the auto-generated addresses to address search
+- Get claude to create a list of different categorized restaurants
+- Clear all current data
+- Make a script to like certain ones and dislike certain ones based on category, find out which ones to do to get a good balance of opinion.
+- Train the model
+- Implement it by adding a recommendtion button that lists the top 5 restaurants that the user queried for
