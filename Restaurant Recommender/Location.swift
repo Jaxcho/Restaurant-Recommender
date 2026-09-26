@@ -311,6 +311,8 @@ struct LocationView: View {
     
     @State private var selectedPlaceId: String = "" // This is the current restaurant id that the modal uses that is used in mark visited
     
+    
+    
     func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Double, _ time: Date){
         errorMessage = nil
         isSubmitting = true
@@ -414,14 +416,21 @@ struct LocationView: View {
             }
 
             HStack {
-                TextField("Search by address", text: $address)
+                TextField("Search by address", text: $address, onEditingChanged: {changed in
+                    if changed{
+                        print("Start timer")
+                    } else {
+                        print("Stop timer")
+                    }})
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
+                    
                     .onSubmit {
                         if !address.isEmpty {
                             pickLocation(address: address, radius: radius)
                         }
                     }
+               
                 Button {
                     pickLocation(address: address, radius: radius)
                 } label: {

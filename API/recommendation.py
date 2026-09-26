@@ -70,8 +70,9 @@ class RecommendationMap:
         pass
 
 async def test_map():
+    user = "6e892122-802c-4468-b0d2-b72c3cda1396"
     db = SessionLocal()
-    map = RecommendationMap
+    map = RecommendationMap()
     print(vars(map))
     db.close()
 

@@ -1,7 +1,26 @@
 import asyncio
+import math
 from google.maps import places_v1
 from google.type import latlng_pb2
 from geopy.distance import geodesic
+
+async def find_autocomplete(input_text, lat, lng, radius):
+    client = places_v1.PlacesAsyncClient(client_options={"api_key": "AIzaSyDlTtqGqM5cy9S8AeK5mtX5UgBxWIFeoDE"})
+
+    kwargs = {"input": input_text}
+    if lat is not None and lng is not None:
+        center_point = latlng_pb2.LatLng(latitude=lat, longitude=lng)
+        circle_area = places_v1.types.Circle(center=center_point, radius=radius)
+        kwargs["location_bias"] = places_v1.AutocompletePlacesRequest.LocationBias(circle=circle_area)
+
+    request = places_v1.AutocompletePlacesRequest(**kwargs)
+    response = await client.autocomplete_places(request=request)
+
+    return [
+        {"place_id": s.place_prediction.place_id, "text": s.place_prediction.text.text}
+        for s in response.suggestions
+    ]
+
 
 async def nearby_search(lat, lng, radius):
  
@@ -22,6 +41,62 @@ async def nearby_search(lat, lng, radius):
   response = await client.search_nearby(request=request, metadata=[("x-goog-fieldmask",fieldMask)]) 
   response = jsonify(response)
   
+  return response
+
+
+def meters_to_latlng_offset(meters, lat):
+  dlat = meters / 111320
+  dlng = meters / (111320 * math.cos(math.radians(lat)))
+  return dlat, dlng
+
+
+async def adaptive_search(lat, lng, radius, min_radius=150, max_depth=4, depth=0):
+  results = await nearby_search(lat, lng, radius)
+
+  if len(results) < 20 or radius <= min_radius or depth >= max_depth:
+    return results
+
+  sub_radius = radius / 2
+  offset = sub_radius / (2 ** 0.5)
+  dlat, dlng = meters_to_latlng_offset(offset, lat)
+
+  sub_centers = [
+      (lat + dlat, lng + dlng), (lat + dlat, lng - dlng),
+      (lat - dlat, lng + dlng), (lat - dlat, lng - dlng),
+  ]
+
+  batches = await asyncio.gather(*(
+      adaptive_search(c_lat, c_lng, sub_radius, min_radius, max_depth, depth + 1)
+      for c_lat, c_lng in sub_centers
+  ))
+
+  seen = {}
+  for batch in batches:
+    for place in batch:
+      seen[place["id"]] = place
+  return list(seen.values())
+
+
+async def text_search(query, lat, lng, radius):
+
+  center_point = latlng_pb2.LatLng(latitude = lat, longitude = lng)
+  circle_area = places_v1.types.Circle(
+    center = center_point,
+    radius = radius)
+  location_bias = places_v1.SearchTextRequest.LocationBias(
+    circle = circle_area
+  )
+  client = places_v1.PlacesAsyncClient(client_options={"api_key": "AIzaSyDlTtqGqM5cy9S8AeK5mtX5UgBxWIFeoDE"})
+  request = places_v1.SearchTextRequest(
+      text_query = query,
+      location_bias = location_bias,
+      included_type = "restaurant",
+  )
+
+  fieldMask = "places.id,places.displayName"
+  response = await client.search_text(request=request, metadata=[("x-goog-fieldmask",fieldMask)])
+  response = jsonify(response)
+
   return response
 
 

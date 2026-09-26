@@ -73,6 +73,12 @@ nonisolated struct RestaurantReviewsDTO: Decodable, Identifiable {
     let rating: Double
 }
 
+//nonisolated struct AutocompleteDTO: Decodable, Identifiable {
+//    let placeID: String
+//    let text: String
+//    
+//}
+
 
 
 
