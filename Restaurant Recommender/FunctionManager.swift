@@ -63,6 +63,10 @@ final class FunctionManager{
         return response
     }
     
+    func autocomplete(text: String) async throws -> Array<AutocompleteDTO> {
+        return try await apiClient.send(.autocomplete(text: text))
+    }
+
     func getReviews(restaurant_id: String) async throws -> Array<RestaurantReviewsDTO>{
         return try await apiClient.send(.getReviews(restaurant_id: restaurant_id))
     }
@@ -70,6 +74,11 @@ final class FunctionManager{
     func postReview(placeId: String, rating: Double, content: String) async throws -> RestaurantReviewsDTO{
         let newReview: RestaurantReviewsDTO = try await apiClient.send(.postReview(placeId: placeId, rating:rating, content: content))
         return newReview
+    }
+    
+    func getHours(placeId: String) async throws -> HoursDTO {
+        let response: HoursDTO = try await apiClient.send(.hours(placeId: placeId))
+        return response
     }
     
 //

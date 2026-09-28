@@ -6,10 +6,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from location import nearby_search, adaptive_search, place_details, find_autocomplete
+from location import nearby_search, place_details, find_autocomplete
 from auth import (authenticate_user, create_access_token, get_current_active_user, fake_users_db, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash, decode_token, token_validation)
 from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant, DBReviews, DBQueries, DBQueriedRestaurants
-from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation, RestaurantRating, Autocomplete
+from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation, RestaurantRating, Autocomplete, Hours
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from pick_location import geocode
@@ -98,12 +98,8 @@ async def get_reviews(restaurant_id: str, db:Session = Depends(get_db)):
 
 
 @app.post("/autocomplete")
-async def autocomplete(data: Autocomplete, response: Response):
-    text = data.text
-    lat = data.lat
-    lng = data.lng
-    radius = data.radius
-    return await find_autocomplete(text,lat, lng, radius)
+async def autocomplete(data: Autocomplete):
+    return await find_autocomplete(data.text)
 
 @app.post("/find_restaurants")
 async def find_restaurants(user_information: UserInformation, response: Response ,current_user: User = Depends(get_current_active_user), db:Session = Depends(get_db)):
@@ -131,7 +127,7 @@ async def find_restaurants(user_information: UserInformation, response: Response
         
 
 
-    data = await adaptive_search(lat, lng, radius)
+    data = await nearby_search(lat, lng, radius)
 
     db_query = DBQueries(lat=lat, lng=lng, radius=radius)
     db.add(db_query)
@@ -264,7 +260,31 @@ def logout():
     refresh_token = create_access_token(data={"sub":""}, expires_delta=timedelta(minutes=0))
     return {"refresh_token" : refresh_token}
 
-
+@app.post("/opening_hours")
+def opening_hours(input_hours: Hours, db:Session = Depends(get_db)):
+    breakfast = False
+    lunch = False
+    dinner = False
+    hours = db.query(DBRestaurant).filter(DBRestaurant.place_id == input_hours.place_id).first()
+    # print(hours)
+    length = []
+    days = []
+    for hour in (hours.hours):
+        if len %2 == 0:
+            days.append(hour["open"]["hour"])
+        else:
+            days.append(hour["close"]["hour"])
+    for leng in len(days):
+        if leng %2 == 0:
+            if days[leng] <= 10:
+                breakfast = True
+            if days[leng] <= 14:
+                lunch = True
+            if days[leng+1] >= 17:
+                dinner = True
+    
+    return {"breakfast": breakfast, "lunch": lunch, "dinner": dinner}
+        
 
 #todo:
 #send requests through postman

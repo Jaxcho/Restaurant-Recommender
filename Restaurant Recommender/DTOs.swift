@@ -73,11 +73,17 @@ nonisolated struct RestaurantReviewsDTO: Decodable, Identifiable {
     let rating: Double
 }
 
-//nonisolated struct AutocompleteDTO: Decodable, Identifiable {
-//    let placeID: String
-//    let text: String
-//    
-//}
+nonisolated struct HoursDTO: Decodable {
+    let breakfast: Bool
+    let lunch: Bool
+    let dinner: Bool
+}
+
+nonisolated struct AutocompleteDTO: Decodable, Identifiable {
+    let placeId: String
+    let text: String
+    var id: String { placeId }
+}
 
 
 
@@ -116,3 +122,11 @@ nonisolated struct PickLocationPayload: Encodable {
     let radius: Double
 }
 
+nonisolated struct AutocompletePayload: Encodable {
+    let text: String
+}
+
+nonisolated struct HoursPayload: Encodable {
+    let placeId: String
+    
+}

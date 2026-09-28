@@ -42,8 +42,7 @@ class RestaurantRating(BaseModel):
 
 
 class Autocomplete(BaseModel):
-    lat: float
-    lng: float
     text: str
-    radius: int
-    
+
+class Hours(BaseModel):
+    place_id: str

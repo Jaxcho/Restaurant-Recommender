@@ -309,10 +309,30 @@ struct LocationView: View {
     @State private var isEditing: Bool = false
     @State private var userReviews: Array<RestaurantReviewsDTO> = []
     
+    @State private var breakfast: Bool = false
+    @State private var lunch: Bool = false
+    @State private var dinner: Bool = false
+    
     @State private var selectedPlaceId: String = "" // This is the current restaurant id that the modal uses that is used in mark visited
-    
-    
-    
+
+    @State private var suggestions: Array<AutocompleteDTO> = []
+    // The in-flight debounce task; each keystroke cancels the previous one.
+    @State private var autocompleteTask: Task<Void, Never>?
+    // Set when we programmatically fill `address` from a suggestion, so the
+    // resulting onChange doesn't kick off another autocomplete fetch.
+    @State private var isSelectingSuggestion: Bool = false
+
+
+    /// Fills the search bar with a suggestion and searches for it.
+    func selectSuggestion(_ suggestion: AutocompleteDTO) {
+        autocompleteTask?.cancel()
+        isSelectingSuggestion = true
+        address = suggestion.text
+        suggestions = []
+        pickLocation(address: suggestion.text, radius: radius)
+    }
+
+
     func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Double, _ time: Date){
         errorMessage = nil
         isSubmitting = true
@@ -367,6 +387,13 @@ struct LocationView: View {
                 hours = restaurant.currentOpeningHours
                 location = restaurant.location
                 
+                let hours: HoursDTO = try await functionManager.getHours(placeId: restaurant_id)
+                breakfast = hours.breakfast
+                lunch = hours.lunch
+                dinner = hours.dinner
+                
+                
+                
                 showModal = true
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
@@ -416,21 +443,44 @@ struct LocationView: View {
             }
 
             HStack {
-                TextField("Search by address", text: $address, onEditingChanged: {changed in
-                    if changed{
-                        print("Start timer")
-                    } else {
-                        print("Stop timer")
-                    }})
+                TextField("Search by address", text: $address)
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
-                    
+                    .onChange(of: address) { _, newValue in
+                        // A programmatic fill from a tapped suggestion: swallow it.
+                        if isSelectingSuggestion {
+                            isSelectingSuggestion = false
+                            return
+                        }
+
+                        // Cancel whatever fetch was pending — the query changed.
+                        autocompleteTask?.cancel()
+
+                        let query = newValue.trimmingCharacters(in: .whitespaces)
+                        guard query.count >= 2 else {
+                            suggestions = []
+                            return
+                        }
+
+                        // Wait 1s; if another keystroke lands first, the cancel
+                        // above kills this task before the sleep finishes.
+                        autocompleteTask = Task {
+                            try? await Task.sleep(for: .seconds(1))
+                            if Task.isCancelled { return }
+                            let results = try? await functionManager.autocomplete(text: query)
+                            if Task.isCancelled { return }
+                            suggestions = results ?? []
+                        }
+                    }
                     .onSubmit {
-                        if !address.isEmpty {
+                        // Enter picks the top suggestion, or falls back to the raw text.
+                        if let first = suggestions.first {
+                            selectSuggestion(first)
+                        } else if !address.isEmpty {
                             pickLocation(address: address, radius: radius)
                         }
                     }
-               
+
                 Button {
                     pickLocation(address: address, radius: radius)
                 } label: {
@@ -438,6 +488,28 @@ struct LocationView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(isSubmitting || address.isEmpty)
+            }
+
+            if !suggestions.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(suggestions) { suggestion in
+                        Button {
+                            selectSuggestion(suggestion)
+                        } label: {
+                            HStack {
+                                Text(suggestion.text)
+                                    .foregroundStyle(.primary)
+                                    .multilineTextAlignment(.leading)
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .contentShape(Rectangle())
+                        }
+                        Divider()
+                    }
+                }
+                .background(.background, in: RoundedRectangle(cornerRadius: 8))
             }
 
             VStack(spacing: 2) {
@@ -450,6 +522,7 @@ struct LocationView: View {
             }
 
             List(locations) { location in
+//                Text("\(functionManager.getHours(placeId: location.id).breakfast)")
                 Button {
                     selectedPlaceId = location.id
                     restaurantData(restaurant_id: location.id, restaurant_name: location.name)

@@ -1,19 +1,13 @@
 import asyncio
-import math
 from google.maps import places_v1
 from google.type import latlng_pb2
 from geopy.distance import geodesic
 
-async def find_autocomplete(input_text, lat, lng, radius):
+async def find_autocomplete(input_text):
     client = places_v1.PlacesAsyncClient(client_options={"api_key": "AIzaSyDlTtqGqM5cy9S8AeK5mtX5UgBxWIFeoDE"})
 
-    kwargs = {"input": input_text}
-    if lat is not None and lng is not None:
-        center_point = latlng_pb2.LatLng(latitude=lat, longitude=lng)
-        circle_area = places_v1.types.Circle(center=center_point, radius=radius)
-        kwargs["location_bias"] = places_v1.AutocompletePlacesRequest.LocationBias(circle=circle_area)
-
-    request = places_v1.AutocompletePlacesRequest(**kwargs)
+    # No location bias — search the entire world.
+    request = places_v1.AutocompletePlacesRequest(input=input_text)
     response = await client.autocomplete_places(request=request)
 
     return [
@@ -42,39 +36,6 @@ async def nearby_search(lat, lng, radius):
   response = jsonify(response)
   
   return response
-
-
-def meters_to_latlng_offset(meters, lat):
-  dlat = meters / 111320
-  dlng = meters / (111320 * math.cos(math.radians(lat)))
-  return dlat, dlng
-
-
-async def adaptive_search(lat, lng, radius, min_radius=150, max_depth=4, depth=0):
-  results = await nearby_search(lat, lng, radius)
-
-  if len(results) < 20 or radius <= min_radius or depth >= max_depth:
-    return results
-
-  sub_radius = radius / 2
-  offset = sub_radius / (2 ** 0.5)
-  dlat, dlng = meters_to_latlng_offset(offset, lat)
-
-  sub_centers = [
-      (lat + dlat, lng + dlng), (lat + dlat, lng - dlng),
-      (lat - dlat, lng + dlng), (lat - dlat, lng - dlng),
-  ]
-
-  batches = await asyncio.gather(*(
-      adaptive_search(c_lat, c_lng, sub_radius, min_radius, max_depth, depth + 1)
-      for c_lat, c_lng in sub_centers
-  ))
-
-  seen = {}
-  for batch in batches:
-    for place in batch:
-      seen[place["id"]] = place
-  return list(seen.values())
 
 
 async def text_search(query, lat, lng, radius):

@@ -134,6 +134,24 @@ extension Endpoint {
         )
     }
     
+    nonisolated static func autocomplete(text: String) throws -> Endpoint {
+        Endpoint(
+            path: "/autocomplete",
+            method: .post,
+            body: try JSONEncoder.api.encode(AutocompletePayload(text: text)),
+            requiresAuth: false
+        )
+    }
+    
+    nonisolated static func hours(placeId: String) throws -> Endpoint {
+        Endpoint(
+            path: "/opening_hours",
+            method: .post,
+            body: try JSONEncoder.api.encode(HoursPayload(placeId: placeId)),
+            requiresAuth: true
+        )
+    }
+
     nonisolated static let me = Endpoint(path: "users/me", method: .get)
 
 }
