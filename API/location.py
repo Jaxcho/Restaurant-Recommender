@@ -16,8 +16,38 @@ async def find_autocomplete(input_text):
     ]
 
 
+# The hour a meal window starts (inclusive) and ends (exclusive), 24h clock.
+MEAL_WINDOWS = {
+    "breakfast": (6, 11),
+    "lunch": (11, 16),
+    "dinner": (16, 22),
+}
+
+
+def meal_availability(periods):
+  """Turn a restaurant's opening periods into breakfast/lunch/dinner flags.
+
+  `periods` is a list of {"open": {hour,...}, "close": {hour,...}} dicts. A meal
+  is available if any open interval overlaps that meal's window.
+  """
+  flags = {"breakfast": False, "lunch": False, "dinner": False}
+  for period in periods:
+    open_side = period.get("open")
+    if not open_side:
+      continue
+    start = open_side["hour"]
+    close_side = period.get("close")
+    end = close_side["hour"] if close_side else 24
+    if end <= start:  # closes after midnight, or open 24h
+      end += 24
+    for meal, (win_start, win_end) in MEAL_WINDOWS.items():
+      if start < win_end and win_start < end:  # intervals overlap
+        flags[meal] = True
+  return flags
+
+
 async def nearby_search(lat, lng, radius):
- 
+
   center_point = latlng_pb2.LatLng(latitude = lat, longitude = lng)
   circle_area = places_v1.types.Circle(
     center = center_point,
@@ -28,14 +58,23 @@ async def nearby_search(lat, lng, radius):
   client = places_v1.PlacesAsyncClient(client_options={"api_key": "AIzaSyDlTtqGqM5cy9S8AeK5mtX5UgBxWIFeoDE"})
   request = places_v1.SearchNearbyRequest(
       location_restriction = location_restriction,
-      included_types = ["restaurant"] 
+      included_types = ["restaurant"]
   )
 
-  fieldMask = "places.id,places.displayName"
-  response = await client.search_nearby(request=request, metadata=[("x-goog-fieldmask",fieldMask)]) 
-  response = jsonify(response)
-  
-  return response
+  fieldMask = "places.id,places.displayName,places.regularOpeningHours"
+  response = await client.search_nearby(request=request, metadata=[("x-goog-fieldmask",fieldMask)])
+
+  results = []
+  for place in response.places:
+    periods = []
+    for period in place.regular_opening_hours.periods:
+      open_hour = {"day": period.open.day, "hour": period.open.hour, "minute": period.open.minute}
+      close_hour = {"day": period.close.day, "hour": period.close.hour, "minute": period.close.minute}
+      periods.append({"open": open_hour, "close": close_hour})
+    flags = meal_availability(periods)
+    results.append({"id": place.id, "name": place.display_name.text, "hours": periods, **flags})
+
+  return results
 
 
 async def text_search(query, lat, lng, radius):
@@ -95,8 +134,7 @@ async def place_details(restaurant_id, lat, lng):
     close = period.close
     open_hour = { "day": open.day, "hour": open.hour, "minute": open.minute }
     close_hour = { "day": close.day, "hour": close.hour, "minute": close.minute }
-    current_opening_hours.append({"open": open_hour})
-    current_opening_hours.append({"close": close_hour})
+    current_opening_hours.append({"open": open_hour, "close": close_hour})
   
   point = (lat, lng)
   location = [response.location.latitude, response.location.longitude]

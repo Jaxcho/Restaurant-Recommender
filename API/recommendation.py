@@ -8,72 +8,103 @@ from surprise import Dataset, Reader, SVD
 
 class RecommendationMap:
     def __init__(self):
-        self.similar_restaurants = {} # user restaurants, {restaurant: rating, ...}
-        self.similar_users = {} # {UUID:{rating:resturant, ...} ...} for all similar restaurants
-        self.final_users = {}
-        self.user_similarity = {} # {user: similarity, ...}
-        self.user_restuarants = {}  # rating, restaurant ID 
-        self.restaurant_ratings = {} # {restaurant: Expected rating}
+        self.user_similarity = {}     # {user: similarity}
+        self.overlap_counts = {}      # {user: number of shared restaurants}
+        self.restaurant_ratings = {}  # {restaurant: predicted rating}
 
-    def users(self, db, user):
-        #DBs
-        
-        self.user_restaurants = db.query( DBReviews.rating, DBRestaurant.id).filter(DBReviews.reviewer_id == user, DBRestaurant.id==DBReviews.restaurant_id).all() # rating, restaurant ID 
-        restaurant_ids = [restaurant for _, restaurant in self.user_restaurants]
+    def recommend(self, db, user, restaurants):
+        # --- Step 1: load my ratings and everyone else's ratings on those same restaurants ---
+        my_reviews = db.query(DBReviews.rating, DBRestaurant.id).filter(
+            DBReviews.reviewer_id == user, DBRestaurant.id == DBReviews.restaurant_id
+        ).all()
+        restaurant_ids = [restaurant_id for _, restaurant_id in my_reviews]
 
-        all_reviews = db.query(DBReviews.reviewer_id, DBReviews.rating, DBReviews.restaurant_id).filter(DBReviews.restaurant_id.in_(restaurant_ids), DBReviews.reviewer_id!=user).all() #Reviewer ID, rating, restaurant ID
+        other_reviews = db.query(DBReviews.reviewer_id, DBReviews.rating, DBReviews.restaurant_id).filter(
+            DBReviews.restaurant_id.in_(restaurant_ids), DBReviews.reviewer_id != user
+        ).all()  # Reviewer ID, rating, restaurant ID
 
+        # average out my own ratings in case I reviewed a place more than once
+        my_ratings_raw = {}
+        for rating, restaurant_id in my_reviews:
+            my_ratings_raw.setdefault(restaurant_id, []).append(rating)
+        my_ratings = {
+            restaurant_id: sum(ratings) / len(ratings)
+            for restaurant_id, ratings in my_ratings_raw.items()
+        }
 
-        #Averaging out multiple ratings and returns data
+        # group each other user's ratings by restaurant, then average duplicates
+        other_users = {}
+        for uuid, rating, restaurant_id in other_reviews:
+            other_users.setdefault(uuid, {}).setdefault(restaurant_id, []).append(rating)
+        other_user_ratings = {
+            uuid: {
+                restaurant_id: sum(ratings) / len(ratings)
+                for restaurant_id, ratings in restaurant_map.items()
+            }
+            for uuid, restaurant_map in other_users.items()
+        }
 
-        for uuid, rating, restaurant in all_reviews:
-            if uuid not in self.similar_users:
-                self.similar_users[uuid] = {}
-            self.similar_users[uuid].setdefault(restaurant, []).append(rating)
+        # --- Step 2: similarity between me and each other user ---
+        for uuid, their_ratings_by_restaurant in other_user_ratings.items():
+            my_shared = []
+            their_shared = []
+            for restaurant_id, their_rating in their_ratings_by_restaurant.items():
+                if restaurant_id in my_ratings:
+                    my_shared.append(my_ratings[restaurant_id])
+                    their_shared.append(their_rating)
 
-        for uuid in self.similar_users:
-            self.final_users[uuid] = {}
-            for rest, ratings in self.similar_users[uuid].items():
-                self.final_users[uuid][rest] = sum(ratings) / len(ratings)
-        return self.final_users
+            self.overlap_counts[uuid] = len(my_shared)
 
-        
-    def find_similarity(self):
+            # Not enough overlap (or no spread) for a meaningful correlation
+            if len(my_shared) < 5 or np.std(my_shared) == 0 or np.std(their_shared) == 0:
+                self.user_similarity[uuid] = 0
+                continue
 
-        # Loops through each user and compares with main user
-        for user in self.final_users:
-            user_restaurants = {}
-            users = []
-            restaurants = self.final_users[user]
-            other_restaurants = []
-            for restaurant in restaurants:
-                for val in self.user_restaurants:
-                    if restaurant == val[1]:
-                        user_restaurants[restaurant] = val[0]
-                        break     
+            similarity = np.corrcoef(my_shared, their_shared)
+            self.user_similarity[uuid] = similarity[0][1]
 
-            # Finding matching rated restaurants
-            
-            for restaurant in user_restaurants:
-                users.append(user_restaurants[restaurant])
-            for restaurant in restaurants:
-                other_restaurants.append(restaurants[restaurant])
+        # --- Step 3: predict my rating for each candidate restaurant ---
+        # weighted average of similar users' ratings, weighted by their similarity to me
+        for restaurant_id in restaurants:
+            reviewers = db.query(DBReviews.reviewer_id, DBReviews.rating).filter(
+                DBReviews.restaurant_id == restaurant_id
+            ).all()
 
-            # Similarity function
-            similarity = np.corrcoef(users, other_restaurants)
-            print(similarity)
-            self.user_similarity[user] = similarity[0][1]
+            weighted_sum = 0
+            weight_total = 0
+            for reviewer_id, rating in reviewers:
+                similarity = self.user_similarity.get(reviewer_id, 0)
+                if similarity <= 0:
+                    continue  # only "similar" users should steer the prediction
+                weighted_sum += similarity * rating
+                weight_total += similarity
 
+            self.restaurant_ratings[restaurant_id] = weighted_sum / weight_total if weight_total != 0 else 3
 
-        
-    def order_restaurants(self, restaurants):
-        pass
 
 async def test_map():
-    user = "6e892122-802c-4468-b0d2-b72c3cda1396"
     db = SessionLocal()
-    map = RecommendationMap()
-    print(vars(map))
+    user = db.query(DBUser).filter(DBUser.username == "seed_asian_1").first().id
+
+    # restaurants I haven't rated yet, to get a predicted rating for
+    rated_ids = {rid for _, rid in db.query(DBReviews.restaurant_id, DBRestaurant.id).filter(
+        DBReviews.reviewer_id == user, DBRestaurant.id == DBReviews.restaurant_id).all()}
+    all_restaurants = db.query(DBRestaurant.id, DBRestaurant.name).all()
+    candidates = [(rid, name) for rid, name in all_restaurants if rid not in rated_ids]
+
+    recommendations = RecommendationMap()
+    recommendations.recommend(db, user, [rid for rid, _ in candidates])
+
+    names = {u.id: u.username for u in db.query(DBUser).all()}
+    print("--- similarity ---")
+    for uid, sim in sorted(recommendations.user_similarity.items(), key=lambda x: -x[1]):
+        print(f"{names[uid]:16} {sim:.2f}  shared: {recommendations.overlap_counts[uid]}")
+
+    restaurant_names = dict(candidates)
+    print("--- predicted ratings ---")
+    for rid, rating in sorted(recommendations.restaurant_ratings.items(), key=lambda x: -x[1])[:10]:
+        print(f"{restaurant_names[rid]:30} {rating:.2f}")
+
     db.close()
 
 if __name__ == "__main__":

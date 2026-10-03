@@ -113,3 +113,7 @@ My current skill profile (last updated 2026-07-19):
   passwords; no force-unwraps in new code.
 - API JSON is snake_case; Swift side converts via JSONEncoder/Decoder.api.
 - Tokens live in Keychain only, never UserDefaults.
+
+
+## FROM ME:
+USE SIMPLE LANGUAGE! I DO NOT LIKE READING A LOT AND WANT YOU TO EXPLAIN IT AS SIMPLY, AND WITH AS LITTLE TEXT AS YOU DEEM NECESSARY FOR MY UNDERSTANDING.

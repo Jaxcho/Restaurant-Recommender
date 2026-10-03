@@ -43,6 +43,9 @@ nonisolated struct AuthResponseDTO: Decodable {
 nonisolated struct FoundLocationsDTO: Decodable, Identifiable {
     let id: String
     let name: String
+    let breakfast: Bool
+    let lunch: Bool
+    let dinner: Bool
 }
 
 nonisolated struct RestaurantDTO: Decodable{

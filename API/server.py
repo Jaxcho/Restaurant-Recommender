@@ -1,4 +1,5 @@
 import asyncio
+import json
 import uvicorn
 from typing import Annotated
 from fastapi import FastAPI, Depends, HTTPException, status, Response, Request, Header
@@ -6,9 +7,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from location import nearby_search, place_details, find_autocomplete
+from location import nearby_search, place_details, find_autocomplete, meal_availability
 from auth import (authenticate_user, create_access_token, get_current_active_user, fake_users_db, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash, decode_token, token_validation)
 from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant, DBReviews, DBQueries, DBQueriedRestaurants
+from recommendation import RecommendationMap
 from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation, RestaurantRating, Autocomplete, Hours
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +19,12 @@ from pick_location import geocode
 app = FastAPI(title="Authentication Demo", version="1.0.0")
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+
+def _restaurant_with_flags(place_id, name, hours_json):
+    """Rebuild a restaurant's meal flags from its stored opening-hours JSON."""
+    periods = json.loads(hours_json) if hours_json else []
+    return {"id": place_id, "name": name, **meal_availability(periods)}
 
 @app.post("/visited_restaurants")
 async def visited_restaurants(body: VisitedRestaurant, user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
@@ -27,8 +35,8 @@ async def visited_restaurants(body: VisitedRestaurant, user: User = Depends(get_
         if db_place is None:
             db_place = DBRestaurant(place_id=body.place_id, name=details["name"])
             db.add(db_place)
-        db_place.hours = str(details["current_opening_hours"])
-        db_place.location = str(details["location"])
+        db_place.hours = json.dumps(details["current_opening_hours"])
+        db_place.location = json.dumps(details["location"])
         db.commit()
         db.refresh(db_place)
     try:
@@ -123,30 +131,36 @@ async def find_restaurants(user_information: UserInformation, response: Response
             .all()
         )
         if saved:  # only trust the cache if it actually has restaurants
-            return [{"id": r.place_id, "name": r.name} for r in saved]
-        
+            return [_restaurant_with_flags(r.place_id, r.name, r.hours) for r in saved]
+
 
 
     data = await nearby_search(lat, lng, radius)
 
     db_query = DBQueries(lat=lat, lng=lng, radius=radius)
     db.add(db_query)
-    db.flush()  
+    db.flush()
 
     for restaurant in data:
         place_id = restaurant["id"]
+        hours_json = json.dumps(restaurant["hours"])
 
         db_restaurant = db.query(DBRestaurant).filter(DBRestaurant.place_id == place_id).first()
         if db_restaurant is None:
-            db_restaurant = DBRestaurant(place_id=place_id, name=restaurant["name"])
+            db_restaurant = DBRestaurant(place_id=place_id, name=restaurant["name"], hours=hours_json)
             db.add(db_restaurant)
-            db.flush()  
+            db.flush()
+        elif db_restaurant.hours is None:
+            db_restaurant.hours = hours_json
 
         db.add(DBQueriedRestaurants(queried_id=db_query.id, restaurant_id=db_restaurant.id))
 
     db.commit()
-    print(data)
-    return data
+    # Drop the raw `hours` from the response — the app only needs the meal flags.
+    return [
+        {"id": r["id"], "name": r["name"], "breakfast": r["breakfast"], "lunch": r["lunch"], "dinner": r["dinner"]}
+        for r in data
+    ]
      
 @app.get("/")
 async def root():
@@ -260,31 +274,48 @@ def logout():
     refresh_token = create_access_token(data={"sub":""}, expires_delta=timedelta(minutes=0))
     return {"refresh_token" : refresh_token}
 
+@app.post("/recommend")
+async def recommend(restaurants, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    restaurants = RecommendationMap.recommend( db, current_user,  restaurants)
+    
+
+
 @app.post("/opening_hours")
-def opening_hours(input_hours: Hours, db:Session = Depends(get_db)):
+async def opening_hours(input_hours: Hours, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
     breakfast = False
     lunch = False
     dinner = False
-    hours = db.query(DBRestaurant).filter(DBRestaurant.place_id == input_hours.place_id).first()
-    # print(hours)
-    length = []
-    days = []
-    for hour in (hours.hours):
-        if len %2 == 0:
-            days.append(hour["open"]["hour"])
-        else:
-            days.append(hour["close"]["hour"])
-    for leng in len(days):
-        if leng %2 == 0:
-            if days[leng] <= 10:
-                breakfast = True
-            if days[leng] <= 14:
-                lunch = True
-            if days[leng+1] >= 17:
-                dinner = True
-    
+
+    db_place = db.query(DBRestaurant).filter(DBRestaurant.place_id == input_hours.place_id).first()
+    # Restaurants saved by /find_restaurants have no hours yet — fetch and cache them.
+    if db_place is None or db_place.hours is None:
+        details = await place_details(input_hours.place_id, 0, 0)
+        if db_place is None:
+            db_place = DBRestaurant(place_id=input_hours.place_id, name=details["name"])
+            db.add(db_place)
+        db_place.hours = json.dumps(details["current_opening_hours"])
+        db_place.location = json.dumps(details["location"])
+        db.commit()
+
+    hours = json.loads(db_place.hours)
+
+    # place_details stores each period as two entries: {"open": ...} then {"close": ...}
+    for i in range(0, len(hours) - 1, 2):
+        open_hour = hours[i]["open"]["hour"]
+        close_hour = hours[i + 1]["close"]["hour"]
+        # Closing after midnight (or open 24h, where close comes back as 0) — push it past 24.
+        if close_hour <= open_hour:
+            close_hour += 24
+
+        if open_hour <= 10:
+            breakfast = True
+        if open_hour <= 14 and close_hour > 12:
+            lunch = True
+        if close_hour >= 17:
+            dinner = True
+
     return {"breakfast": breakfast, "lunch": lunch, "dinner": dinner}
-        
+
 
 #todo:
 #send requests through postman

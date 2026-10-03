@@ -288,6 +288,33 @@ struct StarRatingView: View {
     }
 }
 
+/// The three meal windows a restaurant can be open for. Raw values match the
+/// backend's `breakfast`/`lunch`/`dinner` flags on `FoundLocationsDTO`.
+enum Meal: String, CaseIterable, Identifiable {
+    case breakfast
+    case lunch
+    case dinner
+
+    var id: String { rawValue }
+    var label: String { rawValue.capitalized }
+
+    var icon: String {
+        switch self {
+        case .breakfast: "sunrise"
+        case .lunch: "sun.max"
+        case .dinner: "moon.stars"
+        }
+    }
+
+    func isAvailable(in location: FoundLocationsDTO) -> Bool {
+        switch self {
+        case .breakfast: location.breakfast
+        case .lunch: location.lunch
+        case .dinner: location.dinner
+        }
+    }
+}
+
 struct LocationView: View {
     @State private var camera: MapCameraPosition = .camera(MapCamera(centerCoordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), distance: 500))
     @State private var locationManager = LocationModel()
@@ -315,6 +342,7 @@ struct LocationView: View {
     
     @State private var selectedPlaceId: String = "" // This is the current restaurant id that the modal uses that is used in mark visited
 
+    @State private var selectedMeals: Set<Meal> = []
     @State private var suggestions: Array<AutocompleteDTO> = []
     // The in-flight debounce task; each keystroke cancels the previous one.
     @State private var autocompleteTask: Task<Void, Never>?
@@ -322,6 +350,29 @@ struct LocationView: View {
     // resulting onChange doesn't kick off another autocomplete fetch.
     @State private var isSelectingSuggestion: Bool = false
 
+
+    /// The list narrowed to restaurants open for every selected meal. With no
+    /// meals selected, everything shows.
+    private var displayedLocations: [FoundLocationsDTO] {
+        guard !selectedMeals.isEmpty else { return locations }
+        return locations.filter { location in
+            selectedMeals.allSatisfy { $0.isAvailable(in: location) }
+        }
+    }
+
+    /// Small meal icons shown on each restaurant row for the meals it serves.
+    @ViewBuilder
+    private func mealBadges(for location: FoundLocationsDTO) -> some View {
+        HStack(spacing: 4) {
+            ForEach(Meal.allCases) { meal in
+                if meal.isAvailable(in: location) {
+                    Image(systemName: meal.icon)
+                }
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
 
     /// Fills the search bar with a suggestion and searches for it.
     func selectSuggestion(_ suggestion: AutocompleteDTO) {
@@ -521,8 +572,25 @@ struct LocationView: View {
                     .foregroundStyle(isEditing ? .primary : .secondary)
             }
 
-            List(locations) { location in
-//                Text("\(functionManager.getHours(placeId: location.id).breakfast)")
+            HStack(spacing: 8) {
+                ForEach(Meal.allCases) { meal in
+                    let isOn = selectedMeals.contains(meal)
+                    Button {
+                        if isOn {
+                            selectedMeals.remove(meal)
+                        } else {
+                            selectedMeals.insert(meal)
+                        }
+                    } label: {
+                        Label(meal.label, systemImage: meal.icon)
+                            .font(.footnote)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(isOn ? .accentColor : .secondary)
+                }
+            }
+
+            List(displayedLocations) { location in
                 Button {
                     selectedPlaceId = location.id
                     restaurantData(restaurant_id: location.id, restaurant_name: location.name)
@@ -531,6 +599,7 @@ struct LocationView: View {
                         Text(location.name)
                             .foregroundStyle(.primary)
                         Spacer()
+                        mealBadges(for: location)
                         Image(systemName: "chevron.right")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -540,11 +609,15 @@ struct LocationView: View {
             }
             .listStyle(.plain)
             .overlay {
-                if locations.isEmpty {
+                if displayedLocations.isEmpty {
                     ContentUnavailableView(
-                        "No restaurants yet",
+                        locations.isEmpty ? "No restaurants yet" : "No matches",
                         systemImage: "fork.knife",
-                        description: Text("Search an address or use your location.")
+                        description: Text(
+                            locations.isEmpty
+                            ? "Search an address or use your location."
+                            : "No restaurants are open for the selected meals."
+                        )
                     )
                 }
             }
