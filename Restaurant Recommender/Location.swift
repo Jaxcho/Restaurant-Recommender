@@ -672,18 +672,5 @@ struct LocationView: View {
 
 
 #Preview("Modal") {
-    ModalContentView(
-        location: [37.33, -122.03],
-        hours: [],
-        restaurantName: "Taqueria La Espuela",
-        placeId: "preview-place-id",
-        distance: 1.4,
-        showVisited: false,
-        userReviews: [
-            RestaurantReviewsDTO(id: 1, restaurantId: 1, reviewerName: "alice", reviewerId: "u1", content: "Great al pastor, quick service.", rating: 5),
-            RestaurantReviewsDTO(id: 2, restaurantId: 1, reviewerName: "bob", reviewerId: "u2", content: "Solid but the line gets long at lunch.", rating: 3.5)
-        ],
-        restaurantReview: "Locals praise the fresh tortillas and generous portions. Most reviews mention friendly staff and fast counter service, though parking can be tight on weekends."
-    )
-    .environment(FunctionManager(apiClient: APIClient(baseURL: AppEnvironment.apiBaseURL)))
+   LocationView()
 }
