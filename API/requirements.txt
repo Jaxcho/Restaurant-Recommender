@@ -11,3 +11,6 @@ google-maps-places
 geopy
 pandas
 scikit-surprise
+python-dotenv
+requests
+numpy

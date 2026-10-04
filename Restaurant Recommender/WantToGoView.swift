@@ -1,33 +1,29 @@
 //
-//  ShowVisited.swift
+//  WantToGoView.swift
 //  Restaurant Recommender
-//
-//  Created by Jax Choi on 7/23/26.
 //
 
 import SwiftUI
 
-
-struct ShowVisited: View {
+/// Restaurants the user saved to try later. Same layout as ShowVisited.
+struct WantToGoView: View {
     @Environment(FunctionManager.self) private var functionManager
-    @State private var location: Array<Double> = []
-    @State private var hours: Array<OpeningHoursStruct> = []
-    @State private var errorMessage: String? = nil
+    @State private var places: Array<WantToGoDTO> = []
+    @State private var errorMessage: String?
     @State private var isSubmitting: Bool = false
-    @State private var locations: Array<VisitedRestaurantDTO> = []
-    @State private var distance: Double = 0.0
-    @State private var restaurantReview: String = ""
-    @State private var restaurantName: String = ""
+
+    // Details for the sheet
     @State private var showModal: Bool = false
     @State private var selectedPlaceId: String = ""
+    @State private var restaurantName: String = ""
+    @State private var restaurantReview: String = ""
+    @State private var location: Array<Double> = []
+    @State private var hours: Array<OpeningHoursStruct> = []
+    @State private var distance: Double = 0
     @State private var userReviews: Array<RestaurantReviewsDTO> = []
     @State private var photoUrl: String?
-    
-    func searchRestaurants() {
-        
-    }
-    
-    func loadVisited() {
+
+    func loadPlaces() {
         errorMessage = nil
         isSubmitting = true
         Task {
@@ -35,9 +31,21 @@ struct ShowVisited: View {
                 isSubmitting = false
             }
             do {
-                locations = try await functionManager.showVisited()
+                places = try await functionManager.wantToGo()
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+            }
+        }
+    }
+
+    func remove(_ place: WantToGoDTO) {
+        errorMessage = nil
+        Task {
+            do {
+                try await functionManager.removeWantToGo(placeId: place.placeId)
+                places.removeAll { $0.placeId == place.placeId }
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't remove it."
             }
         }
     }
@@ -74,19 +82,14 @@ struct ShowVisited: View {
                     .padding(.horizontal)
             }
 
-            List(locations) { visited in
+            List(places) { place in
                 Button {
-                    selectedPlaceId = visited.placeId
-                    restaurantData(restaurant_id: visited.placeId, restaurant_name: visited.name)
+                    selectedPlaceId = place.placeId
+                    restaurantData(restaurant_id: place.placeId, restaurant_name: place.name)
                 } label: {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(visited.name)
-                                .foregroundStyle(.primary)
-                            Text(visited.datesVisited.joined(separator: ", "))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        Text(place.name)
+                            .foregroundStyle(.primary)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
@@ -94,23 +97,29 @@ struct ShowVisited: View {
                     }
                 }
                 .disabled(isSubmitting)
+                .swipeActions {
+                    Button("Remove", role: .destructive) {
+                        remove(place)
+                    }
+                }
             }
             .overlay {
-                if locations.isEmpty {
+                if places.isEmpty {
                     ContentUnavailableView(
-                        "Nothing visited yet",
-                        systemImage: "checkmark.circle",
-                        description: Text("Restaurants you mark as visited will show up here.")
+                        "Nothing saved yet",
+                        systemImage: "bookmark",
+                        description: Text("Tap Want to Go on a restaurant to save it here.")
                     )
                 }
             }
         }
-        .navigationTitle("Visited")
+        .navigationTitle("Want to Go")
         .onAppear {
-            loadVisited()
+            loadPlaces()
         }
-        .sheet(isPresented: $showModal) {
-            ModalContentView(location: location, hours: hours,  restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: true, userReviews: userReviews, restaurantReview: restaurantReview, photoUrl: photoUrl)
+        // The sheet can remove the place from the list, so reload when it closes.
+        .sheet(isPresented: $showModal, onDismiss: loadPlaces) {
+            ModalContentView(location: location, hours: hours, restaurantName: restaurantName, placeId: selectedPlaceId, distance: distance, showVisited: false, userReviews: userReviews, restaurantReview: restaurantReview, photoUrl: photoUrl)
         }
     }
 }

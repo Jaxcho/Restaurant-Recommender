@@ -151,6 +151,59 @@ extension Endpoint {
             requiresAuth: true
         )
     }
+    
+    nonisolated static func recommend(placeIds: [String], lat: Double, lng: Double, day: Int, hour: Int, minute: Int) throws -> Endpoint {
+        Endpoint(
+            path: "/recommend",
+            method: .post,
+            body: try JSONEncoder.api.encode(
+                RecommendationsPayload(placeIds: placeIds, lat: lat, lng: lng, day: day, hour: hour, minute: minute)
+            ),
+            requiresAuth: true
+        )
+    }
+
+    nonisolated static func triedRestaurants() -> Endpoint {
+        Endpoint(
+            path: "/tried_restaurants",
+            method: .get,
+            requiresAuth: true
+        )
+    }
+
+    nonisolated static func cuisines() -> Endpoint {
+        Endpoint(path: "/cuisines", method: .get, requiresAuth: false)
+    }
+
+    nonisolated static func preferences() -> Endpoint {
+        Endpoint(path: "/preferences", method: .get, requiresAuth: true)
+    }
+
+    nonisolated static func savePreferences(tastes: Array<TasteDTO>) throws -> Endpoint {
+        Endpoint(
+            path: "/preferences",
+            method: .post,
+            body: try JSONEncoder.api.encode(PreferencesPayload(tastes: tastes)),
+            requiresAuth: true
+        )
+    }
+
+    nonisolated static func wantToGo() -> Endpoint {
+        Endpoint(path: "/want_to_go", method: .get, requiresAuth: true)
+    }
+
+    nonisolated static func addWantToGo(placeId: String) throws -> Endpoint {
+        Endpoint(
+            path: "/want_to_go",
+            method: .post,
+            body: try JSONEncoder.api.encode(WantToGoPayload(placeId: placeId)),
+            requiresAuth: true
+        )
+    }
+
+    nonisolated static func removeWantToGo(placeId: String) -> Endpoint {
+        Endpoint(path: "/want_to_go/\(placeId)", method: .delete, requiresAuth: true)
+    }
 
     nonisolated static let me = Endpoint(path: "users/me", method: .get)
 

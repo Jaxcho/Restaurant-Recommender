@@ -26,5 +26,9 @@ struct RootView: View {
 }
 
 #Preview {
+    // Same setup as Restaurant_RecommenderApp, so login hits the real backend.
+    let apiClient = APIClient(baseURL: AppEnvironment.apiBaseURL)
     RootView()
+        .environment(AuthManager(apiClient: apiClient))
+        .environment(FunctionManager(apiClient: apiClient))
 }

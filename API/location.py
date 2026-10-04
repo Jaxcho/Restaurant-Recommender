@@ -1,10 +1,21 @@
 import asyncio
+import os
+from dotenv import load_dotenv
 from google.maps import places_v1
 from google.type import latlng_pb2
 from geopy.distance import geodesic
+from cuisines import resolve_type
+
+# Reads API/.env when running locally; docker compose passes the same file via env_file.
+load_dotenv()
+PLACES_API_KEY = os.environ["PLACES_API_KEY"]
+
+
+def _client():
+  return places_v1.PlacesAsyncClient(client_options={"api_key": PLACES_API_KEY})
 
 async def find_autocomplete(input_text):
-    client = places_v1.PlacesAsyncClient(client_options={"api_key": "AIzaSyDlTtqGqM5cy9S8AeK5mtX5UgBxWIFeoDE"})
+    client = _client()
 
     # No location bias — search the entire world.
     request = places_v1.AutocompletePlacesRequest(input=input_text)
@@ -55,13 +66,13 @@ async def nearby_search(lat, lng, radius):
   location_restriction = places_v1.SearchNearbyRequest.LocationRestriction(
     circle =circle_area
   )
-  client = places_v1.PlacesAsyncClient(client_options={"api_key": "AIzaSyDlTtqGqM5cy9S8AeK5mtX5UgBxWIFeoDE"})
+  client = _client()
   request = places_v1.SearchNearbyRequest(
       location_restriction = location_restriction,
       included_types = ["restaurant"]
   )
 
-  fieldMask = "places.id,places.displayName,places.regularOpeningHours"
+  fieldMask = "places.id,places.displayName,places.regularOpeningHours,places.location,places.primaryType,places.types"
   response = await client.search_nearby(request=request, metadata=[("x-goog-fieldmask",fieldMask)])
 
   results = []
@@ -72,7 +83,14 @@ async def nearby_search(lat, lng, radius):
       close_hour = {"day": period.close.day, "hour": period.close.hour, "minute": period.close.minute}
       periods.append({"open": open_hour, "close": close_hour})
     flags = meal_availability(periods)
-    results.append({"id": place.id, "name": place.display_name.text, "hours": periods, **flags})
+    results.append({
+      "id": place.id,
+      "name": place.display_name.text,
+      "hours": periods,
+      "location": [place.location.latitude, place.location.longitude],
+      "primary_type": resolve_type(place.primary_type, list(place.types)),
+      **flags,
+    })
 
   return results
 
@@ -86,7 +104,7 @@ async def text_search(query, lat, lng, radius):
   location_bias = places_v1.SearchTextRequest.LocationBias(
     circle = circle_area
   )
-  client = places_v1.PlacesAsyncClient(client_options={"api_key": "AIzaSyDlTtqGqM5cy9S8AeK5mtX5UgBxWIFeoDE"})
+  client = _client()
   request = places_v1.SearchTextRequest(
       text_query = query,
       location_bias = location_bias,
@@ -110,10 +128,23 @@ def jsonify(data):
   return response
 
 
+async def _photo_url(client, photos):
+  """Short-lived Google image URL for the first photo, or None. The URL has no API key in it, so it's safe to send to the app."""
+  if not photos:
+    return None
+  try:
+    media = await client.get_photo_media(
+      request=places_v1.GetPhotoMediaRequest(name=f"{photos[0].name}/media", max_width_px=800, skip_http_redirect=True)
+    )
+    return media.photo_uri
+  except Exception:
+    return None  # a missing photo shouldn't break the details sheet
+
+
 async def place_details(restaurant_id, lat, lng):
   distance = 0
   final = []
-  client = places_v1.PlacesAsyncClient(client_options={"api_key": "AIzaSyDlTtqGqM5cy9S8AeK5mtX5UgBxWIFeoDE"})
+  client = _client()
   # Build the request
   # request = places_v1.GetPlaceRequest(
   #     name="places/ChIJaXQRs6lZwokRY6EFpJnhNNE",
@@ -123,7 +154,7 @@ async def place_details(restaurant_id, lat, lng):
   )
   # Set the field mask
   # fieldMask = "formattedAddress,displayName"
-  fieldMask = "displayName,reviewSummary,location,currentOpeningHours"
+  fieldMask = "displayName,reviewSummary,location,currentOpeningHours,photos,primaryType,types"
   # Make the request
   response = await client.get_place(request=request, metadata=[("x-goog-fieldmask",fieldMask)])
   review_summary = response.review_summary.text.text
@@ -139,8 +170,10 @@ async def place_details(restaurant_id, lat, lng):
   point = (lat, lng)
   location = [response.location.latitude, response.location.longitude]
   distance = geodesic(point, location).miles
+  photo_url = await _photo_url(client, response.photos)
+  primary_type = resolve_type(response.primary_type, list(response.types))
   # print(review_summary)
-  return { "review_summary": review_summary, "current_opening_hours" : current_opening_hours,  "location" : location, "name":name, "distance": distance}
+  return { "review_summary": review_summary, "current_opening_hours" : current_opening_hours,  "location" : location, "name":name, "distance": distance, "photo_url": photo_url, "primary_type": primary_type}
   # for val in response.places:
   #     final.append({id})
   return response

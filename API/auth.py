@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from passlib.context import CryptContext
 from database import DBUser, get_db
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 
@@ -47,8 +48,8 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 def get_user(db, username: str):
-    """Get a user from the database."""
-    existing_user = db.query(DBUser).filter(DBUser.username == username).first()
+    """Get a user from the database. Usernames ignore capitals ("jaxon" finds "Jaxon")."""
+    existing_user = db.query(DBUser).filter(func.lower(DBUser.username) == username.lower()).first()
     return existing_user
 
 def authenticate_user(db, username: str, password: str):

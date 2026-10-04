@@ -102,8 +102,11 @@ struct ModalContentView: View {
     let showVisited: Bool
     @State var userReviews: Array<RestaurantReviewsDTO>
     let restaurantReview: String
+    var photoUrl: String? = nil
 //    let rating: Int
     @State private var rating: Double = 0
+    @State private var isWantToGo: Bool = false
+    @State private var errorMessage: String?
     @State private var userRestaurantReview: String = ""
     @State private var dateVisited: Date = Date()
     @State private var newReviewText: String = ""
@@ -116,7 +119,17 @@ struct ModalContentView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                photo
+
                 header
+
+                wantToGoButton
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.callout)
+                        .foregroundStyle(.red)
+                }
 
                 summaryCard
 
@@ -141,9 +154,59 @@ struct ModalContentView: View {
         .background(Color(.systemGroupedBackground))
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .task {
+            // Is this place already on the user's Want to Go list?
+            isWantToGo = (try? await functionManager.wantToGo().contains { $0.placeId == placeId }) ?? false
+        }
+    }
+
+    /// Adds or removes the place from Want to Go. Flips the button right away,
+    /// and flips it back if the request fails.
+    private func toggleWantToGo() {
+        errorMessage = nil
+        isWantToGo.toggle()
+        let shouldSave = isWantToGo
+        Task {
+            do {
+                if shouldSave {
+                    try await functionManager.addWantToGo(placeId: placeId)
+                } else {
+                    try await functionManager.removeWantToGo(placeId: placeId)
+                }
+            } catch {
+                isWantToGo = !shouldSave
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't update Want to Go."
+            }
+        }
     }
 
     // MARK: - Sections
+
+    @ViewBuilder
+    private var photo: some View {
+        if let photoUrl, let url = URL(string: photoUrl) {
+            AsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(height: 180)
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private var wantToGoButton: some View {
+        Button {
+            toggleWantToGo()
+        } label: {
+            Label(isWantToGo ? "On Want to Go" : "Want to Go", systemImage: isWantToGo ? "bookmark.fill" : "bookmark")
+        }
+        .buttonStyle(.bordered)
+    }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -240,9 +303,14 @@ struct ModalContentView: View {
             DatePicker("Date visited", selection: $dateVisited, displayedComponents: .date)
 
             Button {
+                errorMessage = nil
                 Task {
-                    try await functionManager.visited(placeId: placeId, dateVisited: dateVisited)
-                    dismiss()
+                    do {
+                        try await functionManager.visited(placeId: placeId, dateVisited: dateVisited)
+                        dismiss()
+                    } catch {
+                        errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't mark as visited."
+                    }
                 }
             } label: {
                 Label("Mark Visited", systemImage: "checkmark.circle.fill")
@@ -315,6 +383,36 @@ enum Meal: String, CaseIterable, Identifiable {
     }
 }
 
+extension FoundLocationsDTO {
+    /// Whether any opening period covers `date`, using the device's time zone.
+    /// Google numbers days 0 = Sunday; `Calendar` uses 1 = Sunday.
+    func isOpen(at date: Date, calendar: Calendar = .current) -> Bool {
+        let parts = calendar.dateComponents([.weekday, .hour, .minute], from: date)
+        guard let weekday = parts.weekday, let hour = parts.hour, let minute = parts.minute else { return false }
+
+        let minutesPerWeek = 7 * 24 * 60
+        let now = (weekday - 1) * 24 * 60 + hour * 60 + minute
+
+        return hours.contains { period in
+            guard let open = period.open else { return false }
+            guard let close = period.close else { return true }  // no close time = open 24 hours
+            let start = open.day * 24 * 60 + open.hour * 60 + open.minute
+            var end = close.day * 24 * 60 + close.hour * 60 + close.minute
+            if end <= start { end += minutesPerWeek }  // e.g. opens Saturday night, closes Sunday
+            // Check `now` and `now + 1 week` so periods that wrap past Saturday still match
+            return (start..<end).contains(now) || (start..<end).contains(now + minutesPerWeek)
+        }
+    }
+}
+
+enum SortOption: String, CaseIterable, Identifiable {
+    case bestMatch = "Best Match"
+    case distance = "Distance"
+    case rating = "Rating"
+
+    var id: String { rawValue }
+}
+
 struct LocationView: View {
     @State private var camera: MapCameraPosition = .camera(MapCamera(centerCoordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), distance: 500))
     @State private var locationManager = LocationModel()
@@ -350,14 +448,60 @@ struct LocationView: View {
     // resulting onChange doesn't kick off another autocomplete fetch.
     @State private var isSelectingSuggestion: Bool = false
 
+    @State private var recommendations: Array<RecommendationsDTO> = []
+    // Place ids the user has visited or reviewed, for the "New" filter.
+    @State private var triedPlaceIds: Set<String> = []
+    @State private var showNewOnly: Bool = false
+    @State private var showOpenNow: Bool = false
+    @State private var sortOption: SortOption = .bestMatch
+    // The pin tapped on the map; opens that restaurant's details.
+    @State private var selectedPin: String?
+    @State private var photoUrl: String?
 
-    /// The list narrowed to restaurants open for every selected meal. With no
-    /// meals selected, everything shows.
+
+    /// The list after filters (meals, New, Open Now) and the chosen sort.
     private var displayedLocations: [FoundLocationsDTO] {
-        guard !selectedMeals.isEmpty else { return locations }
-        return locations.filter { location in
+        let now = Date()
+        let filtered = locations.filter { location in
             selectedMeals.allSatisfy { $0.isAvailable(in: location) }
+                && (!showNewOnly || !triedPlaceIds.contains(location.id))
+                && (!showOpenNow || location.isOpen(at: now))
         }
+        switch sortOption {
+        case .bestMatch:
+            return filtered  // Google's order
+        case .distance:
+            // Places with no known distance go last
+            return filtered.sorted { ($0.distance ?? .infinity) < ($1.distance ?? .infinity) }
+        case .rating:
+            return filtered.sorted { ($0.averageRating ?? 0) > ($1.averageRating ?? 0) }
+        }
+    }
+
+    /// A bordered on/off chip, used for every filter in the filter row.
+    private func filterChip(_ title: String, systemImage: String, isOn: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.footnote)
+        }
+        .buttonStyle(.bordered)
+        .tint(isOn ? .accentColor : .secondary)
+    }
+
+    /// "★ 4.2 (12) · 0.8 mi" under a restaurant's name; parts with no data are left out.
+    @ViewBuilder
+    private func rowDetails(for location: FoundLocationsDTO) -> some View {
+        HStack(spacing: 6) {
+            if let averageRating = location.averageRating {
+                Label("\(averageRating, specifier: "%.1f") (\(location.reviewCount))", systemImage: "star.fill")
+                    .labelStyle(.titleAndIcon)
+            }
+            if let distance = location.distance {
+                Text("\(distance, specifier: "%.1f") mi")
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
 
     /// Small meal icons shown on each restaurant row for the meals it serves.
@@ -393,6 +537,7 @@ struct LocationView: View {
             }
             do {
                 locations = try await functionManager.location(lat: latitude, lng: longitude, radius: radius, time: time)
+                recommendations = []  // old picks don't match the new results
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
             }
@@ -410,6 +555,7 @@ struct LocationView: View {
             do {
                 let response = try await functionManager.pickLocation(address: address, radius: radius)
                 locations = response.restaurants
+                recommendations = []
                 latitude = response.lat
                 longitude = response.lng
                 let coordinate = CLLocationCoordinate2D(latitude: response.lat, longitude: response.lng)
@@ -434,6 +580,7 @@ struct LocationView: View {
                 userReviews = try await functionManager.getReviews(restaurant_id: restaurant_id)
                 distance = restaurant.distance
                 restaurantReview = restaurant.reviewSummary
+                photoUrl = restaurant.photoUrl
                 restaurantName = restaurant_name
                 hours = restaurant.currentOpeningHours
                 location = restaurant.location
@@ -453,12 +600,59 @@ struct LocationView: View {
     }
     
     
+    /// Asks the backend for the top 5 picks among the restaurants on screen.
+    func recommend() {
+        errorMessage = nil
+        isSubmitting = true
+        Task {
+            defer {
+                isSubmitting = false
+            }
+            do {
+                recommendations = try await functionManager.recommendations(
+                    placeIds: displayedLocations.map(\.id),
+                    lat: latitude,
+                    lng: longitude,
+                    date: Date()
+                )
+                if recommendations.isEmpty {
+                    errorMessage = "No new restaurants to recommend here."
+                }
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+            }
+        }
+    }
+
+    /// Refreshes which places the user has visited or reviewed.
+    func loadTriedPlaces() async {
+        do {
+            triedPlaceIds = try await functionManager.triedPlaceIds()
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't load visited restaurants."
+        }
+    }
+
+
     var body: some View {
         VStack(spacing: 12) {
-            Map(position: $camera) {
+            Map(position: $camera, selection: $selectedPin) {
                 if let coordinate = locationManager.lastKnownLocation {
                     Marker("You", coordinate: coordinate)
                 }
+                ForEach(displayedLocations) { location in
+                    if let lat = location.lat, let lng = location.lng {
+                        Marker(location.name, systemImage: "fork.knife", coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng))
+                            .tint(.orange)
+                            .tag(location.id)
+                    }
+                }
+            }
+            .onChange(of: selectedPin) { _, placeId in
+                guard let placeId, let location = locations.first(where: { $0.id == placeId }) else { return }
+                selectedPlaceId = placeId
+                restaurantData(restaurant_id: placeId, restaurant_name: location.name)
+                selectedPin = nil  // so tapping the same pin again works
             }
             .frame(height: 240)
             .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -572,51 +766,108 @@ struct LocationView: View {
                     .foregroundStyle(isEditing ? .primary : .secondary)
             }
 
-            HStack(spacing: 8) {
-                ForEach(Meal.allCases) { meal in
-                    let isOn = selectedMeals.contains(meal)
-                    Button {
-                        if isOn {
-                            selectedMeals.remove(meal)
-                        } else {
-                            selectedMeals.insert(meal)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    Menu {
+                        Picker("Sort", selection: $sortOption) {
+                            ForEach(SortOption.allCases) { option in
+                                Text(option.rawValue).tag(option)
+                            }
                         }
                     } label: {
-                        Label(meal.label, systemImage: meal.icon)
+                        Label(sortOption.rawValue, systemImage: "arrow.up.arrow.down")
                             .font(.footnote)
                     }
                     .buttonStyle(.bordered)
-                    .tint(isOn ? .accentColor : .secondary)
+
+                    ForEach(Meal.allCases) { meal in
+                        let isOn = selectedMeals.contains(meal)
+                        filterChip(meal.label, systemImage: meal.icon, isOn: isOn) {
+                            if isOn {
+                                selectedMeals.remove(meal)
+                            } else {
+                                selectedMeals.insert(meal)
+                            }
+                        }
+                    }
+
+                    filterChip("Open Now", systemImage: "clock", isOn: showOpenNow) {
+                        showOpenNow.toggle()
+                    }
+
+                    filterChip("New", systemImage: "sparkles", isOn: showNewOnly) {
+                        showNewOnly.toggle()
+                    }
                 }
             }
 
-            List(displayedLocations) { location in
-                Button {
-                    selectedPlaceId = location.id
-                    restaurantData(restaurant_id: location.id, restaurant_name: location.name)
-                } label: {
-                    HStack {
-                        Text(location.name)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        mealBadges(for: location)
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            List {
+                if !recommendations.isEmpty {
+                    Section("Recommended for You") {
+                        ForEach(recommendations) { recommendation in
+                            Button {
+                                selectedPlaceId = recommendation.placeId
+                                restaurantData(restaurant_id: recommendation.placeId, restaurant_name: recommendation.name)
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(recommendation.name)
+                                            .foregroundStyle(.primary)
+                                        Text(recommendation.reason)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        if recommendation.isWildcard {
+                                            Label("Wildcard", systemImage: "sparkles")
+                                                .font(.caption2)
+                                                .foregroundStyle(.purple)
+                                        }
+                                    }
+                                    Spacer()
+                                    // Round so 3.6 shows 4 stars, not 3
+                                    StarRatingView(rating: recommendation.rating.rounded())
+                                    Text("\(recommendation.rating, specifier: "%.1f")")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .disabled(isSubmitting)
+                        }
                     }
                 }
-                .disabled(isSubmitting)
+
+                Section {
+                    ForEach(displayedLocations) { location in
+                        Button {
+                            selectedPlaceId = location.id
+                            restaurantData(restaurant_id: location.id, restaurant_name: location.name)
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(location.name)
+                                        .foregroundStyle(.primary)
+                                    rowDetails(for: location)
+                                }
+                                Spacer()
+                                mealBadges(for: location)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .disabled(isSubmitting)
+                    }
+                }
             }
             .listStyle(.plain)
             .overlay {
-                if displayedLocations.isEmpty {
+                if displayedLocations.isEmpty && recommendations.isEmpty {
                     ContentUnavailableView(
                         locations.isEmpty ? "No restaurants yet" : "No matches",
                         systemImage: "fork.knife",
                         description: Text(
                             locations.isEmpty
                             ? "Search an address or use your location."
-                            : "No restaurants are open for the selected meals."
+                            : "No restaurants match the selected filters."
                         )
                     )
                 }
@@ -649,12 +900,27 @@ struct LocationView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(isSubmitting)
+
+                Button {
+                    recommend()
+                } label: {
+                    Label("Recommend", systemImage: "star")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(isSubmitting || displayedLocations.isEmpty)
             }
         }
         .padding()
         .navigationTitle("Find Restaurants")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showModal) {
+        .task {
+            await loadTriedPlaces()
+        }
+        // Visiting or reviewing happens in the sheet, so refresh when it closes.
+        .sheet(isPresented: $showModal, onDismiss: {
+            Task { await loadTriedPlaces() }
+        }) {
             ModalContentView(
                 location: location,
                 hours: hours,
@@ -663,14 +929,16 @@ struct LocationView: View {
                 distance: distance,
                 showVisited: false,
                 userReviews: userReviews,
-                restaurantReview: restaurantReview
+                restaurantReview: restaurantReview,
+                photoUrl: photoUrl
             )
         }
     }
 }
 
 
-
-#Preview("Modal") {
-   LocationView()
+#Preview("Location") {
+    let apiClient = APIClient(baseURL: AppEnvironment.apiBaseURL)
+    LocationView()
+        .environment(FunctionManager(apiClient: apiClient))
 }

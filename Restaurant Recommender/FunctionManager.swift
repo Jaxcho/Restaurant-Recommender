@@ -81,6 +81,53 @@ final class FunctionManager{
         return response
     }
     
+    // Sends the phone's local time, since restaurant hours are local too.
+    // Calendar counts Sunday as 1; the API wants 0 = Sunday.
+    func recommendations(placeIds: [String], lat: Double, lng: Double, date: Date) async throws -> Array<RecommendationsDTO> {
+        let calendar = Calendar.current
+        let day = calendar.component(.weekday, from: date) - 1
+        let hour = calendar.component(.hour, from: date)
+        let minute = calendar.component(.minute, from: date)
+        return try await apiClient.send(try .recommend(placeIds: placeIds, lat: lat, lng: lng, day: day, hour: hour, minute: minute))
+    }
+
+    func triedPlaceIds() async throws -> Set<String> {
+        let placeIds: Array<String> = try await apiClient.send(.triedRestaurants())
+        return Set(placeIds)
+    }
+
+    func cuisines() async throws -> Array<CuisineDTO> {
+        return try await apiClient.send(.cuisines())
+    }
+
+    // cuisine key -> score (-1, 0, 1). Empty means onboarding was never done.
+    func preferences() async throws -> [String: Int] {
+        let response: PreferencesDTO = try await apiClient.send(.preferences())
+        var scores: [String: Int] = [:]
+        for taste in response.tastes {
+            scores[taste.key] = taste.score
+        }
+        return scores
+    }
+
+    // Sends every key in `order`; anything missing from `scores` is sent as 0 (neutral).
+    func savePreferences(scores: [String: Int], order: Array<String>) async throws {
+        let tastes = order.map { TasteDTO(key: $0, score: scores[$0] ?? 0) }
+        try await apiClient.send(try .savePreferences(tastes: tastes))
+    }
+
+    func wantToGo() async throws -> Array<WantToGoDTO> {
+        return try await apiClient.send(.wantToGo())
+    }
+
+    func addWantToGo(placeId: String) async throws {
+        try await apiClient.send(try .addWantToGo(placeId: placeId))
+    }
+
+    func removeWantToGo(placeId: String) async throws {
+        try await apiClient.send(.removeWantToGo(placeId: placeId))
+    }
+    
 //
 //    func location() async {
 //        if let refreshToken = tokenStore.refreshToken, let endpoint = try? Endpoint.logout(refreshToken: refreshToken) {

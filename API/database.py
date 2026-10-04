@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, Double, ForeignKey, UniqueConstraint
+from sqlalchemy import text, create_engine, Column, Integer, String, Boolean, Double, ForeignKey, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -51,9 +51,19 @@ class DBRestaurant(Base):
     name = Column(String)
     hours = Column(String)
     location = Column(String)
+    primary_type = Column(String)  # Google's main type, e.g. "chinese_restaurant"
+
+class DBWantToGo(Base):
+    __tablename__ = "want_to_go"
+    __table_args__ = (UniqueConstraint("user_id", "restaurant_id"),)
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), index=True, nullable=False)
+    restaurant_id = Column(Integer, ForeignKey("restaurants.id"), nullable=False)
 
 class DBUserDinedRestaurants(Base):
     __tablename__ = "user_dined_restaurants"
+    # One row per visit: the same place can be logged on different days, but not twice on the same day
+    __table_args__ = (UniqueConstraint("user_id", "restaurant_id", "date_visited", name="uq_user_dined_visit"),)
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), index=True, nullable=False)
     restaurant_id = Column(Integer, ForeignKey("restaurants.id"), index=True, nullable=False)
@@ -103,6 +113,16 @@ When are they open
 
 
 Base.metadata.create_all(bind=engine)
+
+# create_all only makes missing tables — it never adds columns to existing ones.
+# There are no real Alembic migrations yet, so add new columns here (safe to re-run).
+with engine.begin() as connection:
+    connection.execute(text("ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS primary_type VARCHAR"))
+    # Older visits were saved before dates existed, so they stay NULL
+    connection.execute(text("ALTER TABLE user_dined_restaurants ADD COLUMN IF NOT EXISTS date_visited DATE"))
+    # The old rule allowed only one visit per place ever; replace it with one per place per day
+    connection.execute(text("ALTER TABLE user_dined_restaurants DROP CONSTRAINT IF EXISTS user_dined_restaurants_user_id_restaurant_id_key"))
+    connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_user_dined_visit ON user_dined_restaurants (user_id, restaurant_id, date_visited)"))
 
 def get_db():
     db = SessionLocal()

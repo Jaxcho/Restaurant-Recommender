@@ -46,6 +46,13 @@ nonisolated struct FoundLocationsDTO: Decodable, Identifiable {
     let breakfast: Bool
     let lunch: Bool
     let dinner: Bool
+    // Optional: older saved restaurants may not have a location yet
+    let lat: Double?
+    let lng: Double?
+    let distance: Double?        // miles from the search center
+    let averageRating: Double?   // nil when nobody has reviewed it
+    let reviewCount: Int
+    let hours: Array<OpeningHoursStruct>
 }
 
 nonisolated struct RestaurantDTO: Decodable{
@@ -53,6 +60,7 @@ nonisolated struct RestaurantDTO: Decodable{
     let currentOpeningHours : Array<OpeningHoursStruct>
     let location: Array<Double>
     let distance: Double
+    let photoUrl: String?
 }
 
 nonisolated struct PickLocationDTO: Decodable {
@@ -85,6 +93,38 @@ nonisolated struct HoursDTO: Decodable {
 nonisolated struct AutocompleteDTO: Decodable, Identifiable {
     let placeId: String
     let text: String
+    var id: String { placeId }
+}
+
+nonisolated struct RecommendationsDTO: Decodable, Identifiable {
+    let placeId: String
+    let name: String
+    let rating: Double  // predicted rating, 1-5
+    let reason: String  // e.g. "Liked by 3 people with similar taste"
+    let isWildcard: Bool  // a cuisine you haven't tried that people with your taste love
+    var id: String { placeId }
+}
+
+nonisolated struct CuisineDTO: Decodable, Identifiable {
+    let key: String
+    let label: String
+    var id: String { key }
+}
+
+// One cuisine score: -1 = not for me, 0 = neutral, 1 = love it.
+// Sent as an array (not a dictionary) so convertFromSnakeCase can't rename keys like "fast_food".
+nonisolated struct TasteDTO: Codable, Hashable {
+    let key: String
+    let score: Int
+}
+
+nonisolated struct PreferencesDTO: Decodable {
+    let tastes: Array<TasteDTO>
+}
+
+nonisolated struct WantToGoDTO: Decodable, Identifiable {
+    let placeId: String
+    let name: String
     var id: String { placeId }
 }
 
@@ -132,4 +172,23 @@ nonisolated struct AutocompletePayload: Encodable {
 nonisolated struct HoursPayload: Encodable {
     let placeId: String
     
+}
+
+nonisolated struct RecommendationsPayload: Encodable {
+    let placeIds: [String]
+    // Search center, used to rank closer places higher
+    let lat: Double
+    let lng: Double
+    // Phone's local time; day is 0 = Sunday like Google's hours
+    let day: Int
+    let hour: Int
+    let minute: Int
+}
+
+nonisolated struct PreferencesPayload: Encodable {
+    let tastes: Array<TasteDTO>
+}
+
+nonisolated struct WantToGoPayload: Encodable {
+    let placeId: String
 }
