@@ -128,6 +128,12 @@ final class FunctionManager{
         try await apiClient.send(.removeWantToGo(placeId: placeId))
     }
     
+    func partyRecommendations(users: [String], restaurants: [String]) async throws -> PartyRecommendationDTO{
+        return try await apiClient.send(.partyRecommendations(users: users, restaurants: restaurants))
+    }
+    
+//    post to invite, get to join for parties, token -> exp date and group id
+    
 //
 //    func location() async {
 //        if let refreshToken = tokenStore.refreshToken, let endpoint = try? Endpoint.logout(refreshToken: refreshToken) {

@@ -348,6 +348,27 @@ class RecommendationMap:
             reason = "No ratings yet"
         return prediction, reason
 
+class PartyRecommendation:
+    def __init__(self):
+        pass
+
+    def find_restaurants(self, db, users, restaurant_ids):
+        """{user: {restaurant: expected_rating}} for every user and restaurant id."""
+        ratings = {}
+        for user in users:
+            recommendation = RecommendationMap()
+            recommendation.recommend(db, user, restaurant_ids)
+            ratings[user] = recommendation.restaurant_ratings
+        rating_restaurant = {}
+        for restaurant in restaurant_ids:
+            average = 0
+            for user in users:
+                average += ratings[user][restaurant]
+            average = average/len(users)
+            rating_restaurant[restaurant] = average
+        return rating_restaurant
+        
+
 
 async def test_map():
     db = SessionLocal()

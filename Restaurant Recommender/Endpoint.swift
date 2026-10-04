@@ -200,6 +200,14 @@ extension Endpoint {
             requiresAuth: true
         )
     }
+    
+    nonisolated static func partyRecommendations(users: [String], restaurants: [String]) -> Endpoint {
+        Endpoint(
+            path: "/party_recommendation",
+            method: .post,
+            body: try JSONEncoder.api.encode(PartyRecommendationPayload(users: users, restaurants: restaurants)),
+            requiresAuth: true
+        )    }
 
     nonisolated static func removeWantToGo(placeId: String) -> Endpoint {
         Endpoint(path: "/want_to_go/\(placeId)", method: .delete, requiresAuth: true)

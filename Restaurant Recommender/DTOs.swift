@@ -128,7 +128,10 @@ nonisolated struct WantToGoDTO: Decodable, Identifiable {
     var id: String { placeId }
 }
 
-
+nonisolated struct PartyRecommendationDTO: Decodable {
+    let placeId: String
+    let rating: Double
+}
 
 
 // MARK: - Request payloads : Body of Request
@@ -191,4 +194,9 @@ nonisolated struct PreferencesPayload: Encodable {
 
 nonisolated struct WantToGoPayload: Encodable {
     let placeId: String
+}
+
+nonisolated struct PartyRecommendationPayload: Encodable {
+    let users: [String]
+    let restaurants: [String]
 }

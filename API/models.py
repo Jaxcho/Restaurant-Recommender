@@ -40,6 +40,9 @@ class RestaurantRating(BaseModel):
     rating: float
     content: str
 
+class AverageRatings(BaseModel):
+    restaurant: str
+    rating: float
 
 class Autocomplete(BaseModel):
     text: str

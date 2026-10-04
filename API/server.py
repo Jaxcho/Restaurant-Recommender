@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from location import nearby_search, place_details, find_autocomplete, meal_availability
 from auth import (authenticate_user, create_access_token, get_current_active_user, fake_users_db, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash, decode_token, token_validation, get_user)
 from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant, DBReviews, DBQueries, DBQueriedRestaurants, DBUserPreferences, DBWantToGo
-from recommendation import RecommendationMap
+from recommendation import RecommendationMap, PartyRecommendation
 from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation, RestaurantRating, Autocomplete, Hours, Recommend, Preferences, WantToGo
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -427,7 +427,11 @@ async def remove_want_to_go(place_id: str, current_user: User = Depends(get_curr
         db.commit()
     return {"removed": place_id}
 
-    
+@app.post("/party_recommendation")
+async def average_ratings(users, restaurants, db: Session = Depends(get_db)):
+    recommendations = PartyRecommendation
+    recommendations.find_restaurnats(db, users, restaurants)
+    return recommendations
 
 
 @app.post("/opening_hours")
