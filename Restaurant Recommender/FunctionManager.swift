@@ -129,7 +129,7 @@ final class FunctionManager{
     }
     
     func partyRecommendations(users: [String], restaurants: [String]) async throws -> PartyRecommendationDTO{
-        return try await apiClient.send(.partyRecommendations(users: users, restaurants: restaurants))
+        return try await apiClient.send(try .partyRecommendations(users: users, restaurants: restaurants))
     }
     
 //    post to invite, get to join for parties, token -> exp date and group id

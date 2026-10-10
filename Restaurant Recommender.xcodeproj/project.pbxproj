@@ -272,7 +272,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Restaurant-Recommender-Info.plist";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "The app needs access to your location to provide location-based services";
+				INFOPLIST_KEY_CFBundleDisplayName = "Restaurant Radar";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Restaurant Radar uses your location to find great places to eat near you.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -305,7 +306,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Restaurant-Recommender-Info.plist";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "The app needs access to your location to provide location-based services";
+				INFOPLIST_KEY_CFBundleDisplayName = "Restaurant Radar";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Restaurant Radar uses your location to find great places to eat near you.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

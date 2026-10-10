@@ -27,7 +27,7 @@ struct LoginView: View {
             do {
                 try await authManager.login(username: username, password: password)
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't log in. Please try again."
             }
         }
     }
@@ -35,6 +35,11 @@ struct LoginView: View {
     
     var body: some View {
         Form {
+            Section {
+                header
+            }
+            .listRowBackground(Color.clear)
+
             Section {
                 TextField("Username", text: $username)
                     .textInputAutocapitalization(.never)
@@ -62,15 +67,65 @@ struct LoginView: View {
             }
 
             if !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .foregroundStyle(.red)
+                Section {
+                    errorBanner
+                }
+                .listRowBackground(Color.red.opacity(0.12))
             }
 
-            Button("Log In", action: login)
-                .disabled(isSubmitting)
-                .frame(maxWidth: .infinity)
+            Section {
+                submitButton
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
         }
         .navigationTitle("Log In")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var header: some View {
+        VStack(spacing: 8) {
+            Image("BrandMark")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 64, height: 64)
+                .shadow(color: Brand.accent.opacity(0.3), radius: 8, y: 4)
+                .accessibilityHidden(true)
+            Text("Welcome back")
+                .font(.title2.bold())
+            Text("Log in to see restaurants picked for you.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var errorBanner: some View {
+        Label {
+            Text(errorMessage)
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+        }
+        .font(.callout)
+    }
+
+    private var submitButton: some View {
+        Button(action: login) {
+            HStack(spacing: 8) {
+                if isSubmitting {
+                    ProgressView()
+                }
+                Text(isSubmitting ? "Logging In…" : "Log In")
+            }
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.capsule)
+        .controlSize(.large)
+        .disabled(isSubmitting || username.isEmpty || password.isEmpty)
     }
 }
 

@@ -14,14 +14,27 @@ struct RootView: View {
     var body: some View {
         Group {
             if authManager.isBootstrapping {
-                ProgressView()
+                splash
             } else if authManager.isAuthenticated {
                 PostLoginView()
             } else {
                 UnauthenticatedView()
             }
         }
-        
+        .animation(.default, value: authManager.isBootstrapping)
+    }
+
+    // Shown at launch while a saved login is being checked
+    private var splash: some View {
+        VStack(spacing: 24) {
+            Image("BrandMark")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 112, height: 112)
+                .shadow(color: Brand.accent.opacity(0.35), radius: 16, y: 8)
+                .accessibilityHidden(true)
+            ProgressView()
+        }
     }
 }
 

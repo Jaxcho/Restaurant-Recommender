@@ -13,7 +13,8 @@ struct RegisterView: View {
     @State private var password: String = "";
     @State private var isSubmitting: Bool = false;
     @State private var errorMessage: String = "";
-    
+    @State private var showPassword: Bool = false
+
     func register(){
         isSubmitting = true;
         if username == "" || password == "" {
@@ -25,7 +26,7 @@ struct RegisterView: View {
             do {
                 try await authManager.register(username: username, password: password)
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't create your account. Please try again."
             }
         }
     }
@@ -33,21 +34,92 @@ struct RegisterView: View {
     var body: some View {
         Form {
             Section {
+                header
+            }
+            .listRowBackground(Color.clear)
+
+            Section {
                 TextField("Username", text: $username)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                SecureField("Password", text: $password)
+                HStack {
+                    if showPassword {
+                        TextField("Password", text: $password)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    } else {
+                        SecureField("Password", text: $password)
+                    }
+                    Button {
+                        showPassword.toggle()
+                    } label: {
+                        Image(systemName: showPassword ? "eye.slash" : "eye")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(showPassword ? "Hide password" : "Show password")
+                }
             }
 
             if !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .foregroundStyle(.red)
+                Section {
+                    errorBanner
+                }
+                .listRowBackground(Color.red.opacity(0.12))
             }
 
-            Button("Register", action: register)
-                .disabled(isSubmitting)
-                .frame(maxWidth: .infinity)
+            Section {
+                submitButton
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
         }
-        .navigationTitle("Register")
+        .navigationTitle("Sign Up")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var header: some View {
+        VStack(spacing: 8) {
+            Image("BrandMark")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 64, height: 64)
+                .shadow(color: Brand.accent.opacity(0.3), radius: 8, y: 4)
+                .accessibilityHidden(true)
+            Text("Create your account")
+                .font(.title2.bold())
+            Text("Get picks from people who eat like you.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var errorBanner: some View {
+        Label {
+            Text(errorMessage)
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+        }
+        .font(.callout)
+    }
+
+    private var submitButton: some View {
+        Button(action: register) {
+            HStack(spacing: 8) {
+                if isSubmitting {
+                    ProgressView()
+                }
+                Text(isSubmitting ? "Creating Account…" : "Create Account")
+            }
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.capsule)
+        .controlSize(.large)
+        .disabled(isSubmitting || username.isEmpty || password.isEmpty)
     }
 }

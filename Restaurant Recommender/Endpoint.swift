@@ -201,7 +201,7 @@ extension Endpoint {
         )
     }
     
-    nonisolated static func partyRecommendations(users: [String], restaurants: [String]) -> Endpoint {
+    nonisolated static func partyRecommendations(users: [String], restaurants: [String])  throws -> Endpoint {
         Endpoint(
             path: "/party_recommendation",
             method: .post,

@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from sqlalchemy import Date
+from sqlalchemy import Date, DateTime
 
 
 
@@ -59,6 +59,27 @@ class DBWantToGo(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), index=True, nullable=False)
     restaurant_id = Column(Integer, ForeignKey("restaurants.id"), nullable=False)
+
+class DBParty(Base):
+    __tablename__ = "parties"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique = True, index = True, nullable =False)
+    host_id = Column(UUID(as_uuid=True), ForeignKey("users.id"),  nullable=False)
+    lat = Column(Double, nullable=False)
+    lng = Column(Double, nullable=False)
+    radius = Column(Double, nullable = False)
+    status = Column(String, nullable = False, default = "waiting")
+    picks = Column(String)
+    created_at = Column(DateTime(timezone = True), server_default=text("now()"))
+
+class DBPartyMember(Base):
+    __tablename__ = "party_members"
+    _table_args__ = (UniqueConstraint("party_id", "user_id"),)
+    id = Column(Integer, primary_key=True, index= True)
+    party_id= Column(Integer, ForeignKey("parties.id"), index= True, nullable= False)
+    user_id = Column(UUID(as_uuid = True),ForeignKey("users.id"), index= True, nullable= False)
+
+
 
 class DBUserDinedRestaurants(Base):
     __tablename__ = "user_dined_restaurants"

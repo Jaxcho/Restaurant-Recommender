@@ -13,7 +13,7 @@ import MapKit
 
 final class LocationModel: NSObject, CLLocationManagerDelegate {
 
-    
+
     private(set) var lastKnownLocation: CLLocationCoordinate2D?
     private let manager = CLLocationManager()
     // Callers waiting for the next location fix; resumed in the delegate callbacks.
@@ -43,13 +43,13 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
     }
 
     func checkLocationAuthorization() {
-        
+
         manager.delegate = self
 
         switch manager.authorizationStatus {
         case .notDetermined://The user choose allow or denny your app to get the location yet
             manager.requestWhenInUseAuthorization()
-            
+
         case .restricted://The user cannot change this app’s status, possibly due to active restrictions such as parental controls being in place.
             print("Location restricted")
             locationContinuation?.resume(returning: nil)
@@ -71,14 +71,14 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
 
         @unknown default:
             print("Location service disabled")
-        
+
         }
     }
-    
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {//Trigged every time authorization status changes
         checkLocationAuthorization()
     }
-    
+
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         lastKnownLocation = locations.first?.coordinate
         locationContinuation?.resume(returning: lastKnownLocation)
@@ -92,8 +92,95 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
     }
 }
 
+// MARK: - Shared pieces
+
+/// A soft red banner for errors on the Discover screen and the details sheet.
+private struct ErrorBanner: View {
+    let message: String
+
+    var body: some View {
+        Label {
+            Text(message)
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Brand.closed)
+        }
+        .font(.callout)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Brand.closed.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+/// A bold section title with a brand-colored icon and an optional caption under it.
+private struct SectionHeader: View {
+    let title: String
+    let systemImage: String
+    var caption: String? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: systemImage)
+                    .foregroundStyle(Brand.accent)
+            }
+            .font(.title3.bold())
+
+            if let caption {
+                Text(caption)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Today's status from Google's weekly opening periods (day 0 = Sunday), like
+/// "Open · until 9:00 PM" or "Closed · opens Tue 11:00 AM". Nil when the hours are unknown.
+private func openStatus(for periods: [OpeningHoursStruct], at date: Date = Date()) -> (isOpen: Bool, text: String)? {
+    let calendar = Calendar.current
+    let minutesPerWeek = 7 * 24 * 60
+    let today = calendar.component(.weekday, from: date) - 1
+    let now = today * 24 * 60 + calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
+
+    var soonestWait = Int.max
+    var nextOpening: HourStruct?
+    for period in periods {
+        guard let open = period.open else { continue }
+        guard let close = period.close else { return (true, "Open 24 hours") }
+        let start = open.day * 24 * 60 + open.hour * 60 + open.minute
+        var end = close.day * 24 * 60 + close.hour * 60 + close.minute
+        if end <= start { end += minutesPerWeek }
+        if end - start >= minutesPerWeek { return (true, "Open 24 hours") }
+        if (start..<end).contains(now) || (start..<end).contains(now + minutesPerWeek) {
+            return (true, "Open · until \(clockText(close))")
+        }
+        let wait = ((start - now) % minutesPerWeek + minutesPerWeek) % minutesPerWeek
+        if wait < soonestWait {
+            soonestWait = wait
+            nextOpening = open
+        }
+    }
+
+    guard let nextOpening else { return periods.isEmpty ? nil : (false, "Closed") }
+    let symbols = calendar.shortWeekdaySymbols
+    let opensToday = nextOpening.day == today && soonestWait < 24 * 60
+    let day = (opensToday || !symbols.indices.contains(nextOpening.day)) ? "" : symbols[nextOpening.day] + " "
+    return (false, "Closed · opens \(day)\(clockText(nextOpening))")
+}
+
+private func clockText(_ time: HourStruct) -> String {
+    let date = Calendar.current.date(from: DateComponents(hour: time.hour, minute: time.minute)) ?? Date()
+    return date.formatted(date: .omitted, time: .shortened)
+}
+
+// MARK: - Details sheet
+
 struct ModalContentView: View {
-    
+
     let location: Array<Double>
     let hours: Array<OpeningHoursStruct>
     let restaurantName: String
@@ -103,57 +190,61 @@ struct ModalContentView: View {
     @State var userReviews: Array<RestaurantReviewsDTO>
     let restaurantReview: String
     var photoUrl: String? = nil
-//    let rating: Int
+    var cuisine: String? = nil
     @State private var rating: Double = 0
     @State private var isWantToGo: Bool = false
     @State private var errorMessage: String?
     @State private var userRestaurantReview: String = ""
     @State private var dateVisited: Date = Date()
-    @State private var newReviewText: String = ""
     @State private var isSubmittingReview: Bool = false
+    @State private var isMarkingVisited: Bool = false
+    // Bumped after every successful save so the success haptic plays
+    @State private var successCount: Int = 0
 
     @Environment(FunctionManager.self) private var functionManager
-    // Environment property to dismiss the view programmatically
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+
+    private var style: CuisineStyle { CuisineStyle.of(cuisine) }
+
+    /// Apple Maps directions, when we know where the restaurant is.
+    private var directionsURL: URL? {
+        guard location.count == 2 else { return nil }
+        return URL(string: "http://maps.apple.com/?daddr=\(location[0]),\(location[1])")
+    }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                photo
+            VStack(alignment: .leading, spacing: 16) {
+                hero
 
                 header
 
-                wantToGoButton
+                actions
 
                 if let errorMessage {
-                    Text(errorMessage)
-                        .font(.callout)
-                        .foregroundStyle(.red)
+                    ErrorBanner(message: errorMessage)
                 }
 
                 summaryCard
 
                 writeReviewCard
 
-                if self.userReviews.isEmpty == false {
+                if !userReviews.isEmpty {
                     reviewsSection
                 }
 
-                if showVisited == false {
+                if !showVisited {
                     markVisitedCard
                 }
-
-                Button("Dismiss") {
-                    dismiss()
-                }
-                .buttonStyle(.bordered)
-                .frame(maxWidth: .infinity)
             }
             .padding()
         }
         .background(Color(.systemGroupedBackground))
+        .scrollDismissesKeyboard(.interactively)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .sensoryFeedback(.success, trigger: successCount)
         .task {
             // Is this place already on the user's Want to Go list?
             isWantToGo = (try? await functionManager.wantToGo().contains { $0.placeId == placeId }) ?? false
@@ -173,6 +264,7 @@ struct ModalContentView: View {
                 } else {
                     try await functionManager.removeWantToGo(placeId: placeId)
                 }
+                successCount += 1
             } catch {
                 isWantToGo = !shouldSave
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't update Want to Go."
@@ -180,97 +272,182 @@ struct ModalContentView: View {
         }
     }
 
-    // MARK: - Sections
-
-    @ViewBuilder
-    private var photo: some View {
-        if let photoUrl, let url = URL(string: photoUrl) {
-            AsyncImage(url: url) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-            } placeholder: {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    private func submitReview() {
+        errorMessage = nil
+        isSubmittingReview = true
+        Task {
+            defer { isSubmittingReview = false }
+            do {
+                let newReview = try await functionManager.postReview(placeId: placeId, rating: rating, content: userRestaurantReview)
+                userReviews.append(newReview)
+                successCount += 1
+                dismiss()
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't post your review. Try again."
             }
-            .frame(height: 180)
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 
-    private var wantToGoButton: some View {
-        Button {
-            toggleWantToGo()
-        } label: {
-            Label(isWantToGo ? "On Want to Go" : "Want to Go", systemImage: isWantToGo ? "bookmark.fill" : "bookmark")
+    private func markVisited() {
+        errorMessage = nil
+        isMarkingVisited = true
+        Task {
+            defer { isMarkingVisited = false }
+            do {
+                try await functionManager.visited(placeId: placeId, dateVisited: dateVisited)
+                successCount += 1
+                dismiss()
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't mark as visited."
+            }
         }
-        .buttonStyle(.bordered)
+    }
+
+    // MARK: - Sections
+
+    private var hero: some View {
+        Group {
+            if let photoUrl, let url = URL(string: photoUrl) {
+                Color.clear
+                    .frame(height: 200)
+                    .overlay {
+                        AsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            ProgressView()
+                        }
+                    }
+                    .background(style.tint.opacity(0.15))
+            } else {
+                // No photo: the cuisine's emoji on a soft tinted panel
+                Text(style.emoji)
+                    .font(.system(size: 72))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 150)
+                    .background(style.tint.opacity(0.15))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .accessibilityHidden(true)
+        .overlay(alignment: .topTrailing) {
+            closeButton
+        }
+    }
+
+    private var closeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "xmark")
+                .font(.body.weight(.semibold))
+                .frame(width: 32, height: 32)
+        }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .accessibilityLabel("Close")
+        .padding(10)
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(restaurantName)
-                .font(.title2)
-                .bold()
+                .font(.title2.bold())
 
-            if showVisited == false {
-                Label("\(distance, specifier: "%.1f") mi away", systemImage: "location.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    if cuisine != nil {
+                        TagLabel(text: "\(style.emoji) \(style.label)", tint: style.tint)
+                    }
+                    // A 0,0 search center gives huge bogus distances, so only show believable ones
+                    if !showVisited, distance > 0, distance < 100 {
+                        TagLabel(text: "\(distance.formatted(.number.precision(.fractionLength(1)))) mi away", systemImage: "location.fill", tint: Brand.accent)
+                    }
+                    if let status = openStatus(for: hours) {
+                        TagLabel(text: status.text, systemImage: "clock.fill", tint: status.isOpen ? Brand.open : Brand.closed)
+                    }
+                }
+            }
+            .scrollClipDisabled()
+        }
+    }
+
+    private var actions: some View {
+        HStack(spacing: 12) {
+            Button {
+                toggleWantToGo()
+            } label: {
+                Label(isWantToGo ? "Saved" : "Want to Go", systemImage: isWantToGo ? "bookmark.fill" : "bookmark")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .accessibilityLabel(isWantToGo ? "Remove from Want to Go" : "Add to Want to Go")
+
+            if let directionsURL {
+                Button {
+                    openURL(directionsURL)
+                } label: {
+                    Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
             }
         }
+        .font(.headline)
+        .controlSize(.large)
+        .buttonBorderShape(.capsule)
     }
 
     private var summaryCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Summary", systemImage: "text.quote")
+            Label("What people say", systemImage: "text.quote")
                 .font(.headline)
 
             if restaurantReview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text("No review summary available.")
+                Text("No review summary yet.")
                     .foregroundStyle(.secondary)
             } else {
                 Text(restaurantReview)
+                Text("Summary by Google")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .cardStyle()
     }
 
     private var writeReviewCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Leave a review", systemImage: "square.and.pencil")
+            Label("Rate it", systemImage: "square.and.pencil")
                 .font(.headline)
 
             StarRatingPicker(rating: $rating)
 
-            TextField("What do you think?", text: $userRestaurantReview, axis: .vertical)
+            TextField("What did you think? (optional)", text: $userRestaurantReview, axis: .vertical)
                 .lineLimit(2...4)
-                .textFieldStyle(.roundedBorder)
+                .padding(12)
+                .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             Button {
-                isSubmittingReview = true
-                Task {
-                    defer { isSubmittingReview = false }
-                    let newReview = try await functionManager.postReview(placeId: placeId, rating: rating, content: userRestaurantReview)
-                    print("new review")
-                    userReviews.append(newReview)
-                    print("\(newReview)")
-                    dismiss()
-                    
-                }
+                submitReview()
             } label: {
-                Label("Submit", systemImage: "checkmark.circle.fill")
-                    .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    if isSubmittingReview {
+                        ProgressView()
+                    }
+                    Text(isSubmittingReview ? "Posting…" : "Post Review")
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
             .disabled(isSubmittingReview || rating == 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .cardStyle()
     }
 
     private var reviewsSection: some View {
@@ -279,47 +456,62 @@ struct ModalContentView: View {
                 .font(.headline)
 
             ForEach(userReviews) { review in
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text(review.reviewerName)
-                            .font(.subheadline)
-                            .bold()
-                        Spacer()
-                        StarRatingView(rating: review.rating)
+                HStack(alignment: .top, spacing: 12) {
+                    Text(String(review.reviewerName.prefix(1)).uppercased())
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(Brand.accent.gradient, in: Circle())
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(review.reviewerName)
+                                .font(.subheadline.bold())
+                            Spacer()
+                            StarRatingView(rating: review.rating)
+                        }
+                        if !review.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            Text(review.content)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    Text(review.content)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+
+                if review.id != userReviews.last?.id {
+                    Divider()
+                }
             }
         }
+        .cardStyle()
     }
 
     private var markVisitedCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            DatePicker("Date visited", selection: $dateVisited, displayedComponents: .date)
+            Label("Been here?", systemImage: "checkmark.seal")
+                .font(.headline)
+
+            DatePicker("Date visited", selection: $dateVisited, in: ...Date(), displayedComponents: .date)
 
             Button {
-                errorMessage = nil
-                Task {
-                    do {
-                        try await functionManager.visited(placeId: placeId, dateVisited: dateVisited)
-                        dismiss()
-                    } catch {
-                        errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't mark as visited."
-                    }
-                }
+                markVisited()
             } label: {
-                Label("Mark Visited", systemImage: "checkmark.circle.fill")
-                    .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    if isMarkingVisited {
+                        ProgressView()
+                    }
+                    Text(isMarkingVisited ? "Saving…" : "Mark as Visited")
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
+            .disabled(isMarkingVisited)
         }
-        .padding()
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .cardStyle()
     }
 }
 
@@ -328,16 +520,21 @@ struct StarRatingPicker: View {
     @Binding var rating: Double
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             ForEach(1...5, id: \.self) { star in
-                Image(systemName: Double(star) <= rating ? "star.fill" : "star")
-                    .font(.title2)
-                    .foregroundStyle(.yellow)
-                    .onTapGesture {
-                        rating = Double(star)
-                    }
+                Button {
+                    rating = Double(star)
+                } label: {
+                    Image(systemName: Double(star) <= rating ? "star.fill" : "star")
+                        .font(.title)
+                        .foregroundStyle(Double(star) <= rating ? Brand.star : Color.secondary)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(star == 1 ? "1 star" : "\(star) stars")
+                .accessibilityAddTraits(Double(star) == rating ? .isSelected : [])
             }
         }
+        .sensoryFeedback(.selection, trigger: rating)
     }
 }
 
@@ -349,10 +546,12 @@ struct StarRatingView: View {
         HStack(spacing: 2) {
             ForEach(1...5, id: \.self) { star in
                 Image(systemName: Double(star) <= rating ? "star.fill" : "star")
-                    .font(.caption)
-                    .foregroundStyle(.yellow)
             }
         }
+        .font(.caption)
+        .foregroundStyle(Brand.star)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(rating.formatted(.number.precision(.fractionLength(0...1)))) out of 5 stars")
     }
 }
 
@@ -413,8 +612,136 @@ enum SortOption: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+// MARK: - Discover screen pieces
+
+/// A restaurant in the results list: cuisine emoji, name, and a one-line summary.
+private struct RestaurantRow: View {
+    let location: FoundLocationsDTO
+
+    var body: some View {
+        HStack(spacing: 14) {
+            CuisineBadge(cuisine: location.cuisine)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(location.name)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                details
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            mealIcons
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
+
+    /// "★ 4.2 (12) · 0.8 mi · Open"; parts with no data are left out.
+    private var details: Text {
+        var parts: [Text] = []
+        if let averageRating = location.averageRating {
+            parts.append(Text(Image(systemName: "star.fill")).foregroundStyle(Brand.star) + Text(" \(averageRating, specifier: "%.1f") (\(location.reviewCount))"))
+        }
+        if let distance = location.distance {
+            parts.append(Text("\(distance, specifier: "%.1f") mi"))
+        }
+        if !location.hours.isEmpty {
+            let isOpen = location.isOpen(at: Date())
+            parts.append(Text(isOpen ? "Open" : "Closed").foregroundStyle(isOpen ? Brand.open : Brand.closed))
+        }
+        guard let first = parts.first else { return Text("No details yet") }
+        return parts.dropFirst().reduce(first) { $0 + Text(" · ") + $1 }
+    }
+
+    private var mealIcons: some View {
+        HStack(spacing: 4) {
+            ForEach(Meal.allCases) { meal in
+                if meal.isAvailable(in: location) {
+                    Image(systemName: meal.icon)
+                }
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(servesText)
+    }
+
+    private var servesText: String {
+        let meals = Meal.allCases.filter { $0.isAvailable(in: location) }.map(\.label)
+        return meals.isEmpty ? "" : "Serves " + meals.joined(separator: ", ")
+    }
+}
+
+/// One "Picked for You" card: cuisine, predicted score, and why it was picked.
+private struct RecommendationCard: View {
+    let recommendation: RecommendationsDTO
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                CuisineBadge(cuisine: recommendation.cuisine, size: 44)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 0) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "star.fill")
+                            .foregroundStyle(Brand.star)
+                        Text(recommendation.rating, format: .number.precision(.fractionLength(1)))
+                    }
+                    .font(.title3.bold())
+                    Text("for you")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Text(recommendation.name)
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            Text(recommendation.reason)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+                .multilineTextAlignment(.leading)
+
+            if recommendation.isWildcard {
+                TagLabel(text: "Wildcard", systemImage: "sparkles", tint: Brand.wildcard)
+            }
+        }
+        .padding(14)
+        .frame(width: 236, alignment: .topLeading)
+        .frame(minHeight: 190, alignment: .topLeading)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            if recommendation.isWildcard {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(Brand.wildcard.opacity(0.45), lineWidth: 1.5)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Discover screen
+
 struct LocationView: View {
-    @State private var camera: MapCameraPosition = .camera(MapCamera(centerCoordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), distance: 500))
+    @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
+    // Where the map is looking right now, so the zoom buttons can zoom from there
+    @State private var visibleRegion: MKCoordinateRegion?
     @State private var locationManager = LocationModel()
     @Environment(FunctionManager.self) private var functionManager
     @State private var latitude: Double = 0
@@ -423,22 +750,18 @@ struct LocationView: View {
     @State private var radius: Double = 1.0
     @State private var time: Date = Date()
     @State private var isSubmitting: Bool = false
-    @State private var locations: Array<FoundLocationsDTO> = [];
+    @State private var locations: Array<FoundLocationsDTO> = []
     @State private var restaurantReview: String = ""
     @State private var showModal = false
     @State private var location: Array<Double> = []
     @State private var hours: Array<OpeningHoursStruct> = []
-    @State private var restaurantName: String = "";
-    @State private var distance: Double = 0;
+    @State private var restaurantName: String = ""
+    @State private var distance: Double = 0
     @State private var address: String = ""
-    @State private var isEditing: Bool = false
     @State private var userReviews: Array<RestaurantReviewsDTO> = []
-    
-    @State private var breakfast: Bool = false
-    @State private var lunch: Bool = false
-    @State private var dinner: Bool = false
-    
+
     @State private var selectedPlaceId: String = "" // This is the current restaurant id that the modal uses that is used in mark visited
+    @State private var selectedCuisine: String?
 
     @State private var selectedMeals: Set<Meal> = []
     @State private var suggestions: Array<AutocompleteDTO> = []
@@ -457,6 +780,9 @@ struct LocationView: View {
     // The pin tapped on the map; opens that restaurant's details.
     @State private var selectedPin: String?
     @State private var photoUrl: String?
+
+    // Google rejects searches wider than about 31 miles
+    private let radiusOptions: [Double] = [0.5, 1, 2, 5, 10, 25]
 
 
     /// The list after filters (meals, New, Open Now) and the chosen sort.
@@ -478,46 +804,6 @@ struct LocationView: View {
         }
     }
 
-    /// A bordered on/off chip, used for every filter in the filter row.
-    private func filterChip(_ title: String, systemImage: String, isOn: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.footnote)
-        }
-        .buttonStyle(.bordered)
-        .tint(isOn ? .accentColor : .secondary)
-    }
-
-    /// "★ 4.2 (12) · 0.8 mi" under a restaurant's name; parts with no data are left out.
-    @ViewBuilder
-    private func rowDetails(for location: FoundLocationsDTO) -> some View {
-        HStack(spacing: 6) {
-            if let averageRating = location.averageRating {
-                Label("\(averageRating, specifier: "%.1f") (\(location.reviewCount))", systemImage: "star.fill")
-                    .labelStyle(.titleAndIcon)
-            }
-            if let distance = location.distance {
-                Text("\(distance, specifier: "%.1f") mi")
-            }
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-    }
-
-    /// Small meal icons shown on each restaurant row for the meals it serves.
-    @ViewBuilder
-    private func mealBadges(for location: FoundLocationsDTO) -> some View {
-        HStack(spacing: 4) {
-            ForEach(Meal.allCases) { meal in
-                if meal.isAvailable(in: location) {
-                    Image(systemName: meal.icon)
-                }
-            }
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-    }
-
     /// Fills the search bar with a suggestion and searches for it.
     func selectSuggestion(_ suggestion: AutocompleteDTO) {
         autocompleteTask?.cancel()
@@ -527,6 +813,24 @@ struct LocationView: View {
         pickLocation(address: suggestion.text, radius: radius)
     }
 
+    /// Searches the typed address, or the user's current location when the search box is empty.
+    func findFood() {
+        if !address.trimmingCharacters(in: .whitespaces).isEmpty {
+            pickLocation(address: address, radius: radius)
+        } else {
+            Task {
+                if let coordinate = await locationManager.currentLocation() {
+                    latitude = coordinate.latitude
+                    longitude = coordinate.longitude
+                    time = Date()
+                    center(on: coordinate)
+                    sendLocation(latitude, longitude, radius, time)
+                } else {
+                    errorMessage = "Couldn't get your location. Allow location access or search an address."
+                }
+            }
+        }
+    }
 
     func sendLocation(_ latitude: Double, _ longitude: Double ,_ radius: Double, _ time: Date){
         errorMessage = nil
@@ -539,12 +843,12 @@ struct LocationView: View {
                 locations = try await functionManager.location(lat: latitude, lng: longitude, radius: radius, time: time)
                 recommendations = []  // old picks don't match the new results
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't load restaurants near you."
             }
         }
     }
-    
-    
+
+
     func pickLocation(address: String, radius: Double){
         errorMessage = nil
         isSubmitting = true
@@ -558,16 +862,13 @@ struct LocationView: View {
                 recommendations = []
                 latitude = response.lat
                 longitude = response.lng
-                let coordinate = CLLocationCoordinate2D(latitude: response.lat, longitude: response.lng)
-                if let cam = camera.camera {
-                    camera = .camera(MapCamera(centerCoordinate: coordinate, distance: cam.distance))
-                }
+                center(on: CLLocationCoordinate2D(latitude: response.lat, longitude: response.lng))
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't search that address."
             }
         }
     }
-    
+
     func restaurantData(restaurant_id: String, restaurant_name: String){
         errorMessage = nil
         isSubmitting = true
@@ -584,22 +885,20 @@ struct LocationView: View {
                 restaurantName = restaurant_name
                 hours = restaurant.currentOpeningHours
                 location = restaurant.location
-                
-                let hours: HoursDTO = try await functionManager.getHours(placeId: restaurant_id)
-                breakfast = hours.breakfast
-                lunch = hours.lunch
-                dinner = hours.dinner
-                
-                
-                
                 showModal = true
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't open this restaurant."
             }
         }
     }
-    
-    
+
+    private func open(placeId: String, name: String, cuisine: String?) {
+        selectedPlaceId = placeId
+        selectedCuisine = cuisine
+        restaurantData(restaurant_id: placeId, restaurant_name: name)
+    }
+
+
     /// Asks the backend for the top 5 picks among the restaurants on screen.
     func recommend() {
         errorMessage = nil
@@ -619,7 +918,7 @@ struct LocationView: View {
                     errorMessage = "No new restaurants to recommend here."
                 }
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Uh oh"
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't get recommendations."
             }
         }
     }
@@ -633,64 +932,162 @@ struct LocationView: View {
         }
     }
 
+    /// Moves the map to a search center, zoomed so the whole search radius fits.
+    private func center(on coordinate: CLLocationCoordinate2D) {
+        let meters = max(radius, 0.5) * 1609 * 2.4
+        withAnimation {
+            camera = .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: meters, longitudinalMeters: meters))
+        }
+    }
+
+    private func zoom(by factor: Double) {
+        guard let region = visibleRegion else { return }
+        let span = MKCoordinateSpan(
+            latitudeDelta: min(max(region.span.latitudeDelta * factor, 0.002), 60),
+            longitudeDelta: min(max(region.span.longitudeDelta * factor, 0.002), 60)
+        )
+        withAnimation {
+            camera = .region(MKCoordinateRegion(center: region.center, span: span))
+        }
+    }
+
+    private func milesText(_ miles: Double) -> String {
+        "\(miles.formatted(.number.precision(.fractionLength(0...1)))) mi"
+    }
+
 
     var body: some View {
-        VStack(spacing: 12) {
-            Map(position: $camera, selection: $selectedPin) {
-                if let coordinate = locationManager.lastKnownLocation {
-                    Marker("You", coordinate: coordinate)
-                }
-                ForEach(displayedLocations) { location in
-                    if let lat = location.lat, let lng = location.lng {
-                        Marker(location.name, systemImage: "fork.knife", coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng))
-                            .tint(.orange)
-                            .tag(location.id)
-                    }
-                }
-            }
-            .onChange(of: selectedPin) { _, placeId in
-                guard let placeId, let location = locations.first(where: { $0.id == placeId }) else { return }
-                selectedPlaceId = placeId
-                restaurantData(restaurant_id: placeId, restaurant_name: location.name)
-                selectedPin = nil  // so tapping the same pin again works
-            }
-            .frame(height: 240)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(alignment: .bottomTrailing) {
-                VStack(spacing: 0) {
-                    Button {
-                        if let cam = camera.camera {
-                            camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 0.5))
-                        }
-                    } label: {
-                        Image(systemName: "plus")
-                            .frame(width: 36, height: 36)
-                    }
-                    Divider()
-                        .frame(width: 36)
-                    Button {
-                        if let cam = camera.camera {
-                            camera = .camera(MapCamera(centerCoordinate: cam.centerCoordinate, distance: cam.distance * 2))
-                        }
-                    } label: {
-                        Image(systemName: "minus")
-                            .frame(width: 36, height: 36)
-                    }
-                }
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8))
-                .padding(8)
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                mapCard
 
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.callout)
-                    .foregroundStyle(.red)
-            }
+                if let errorMessage {
+                    ErrorBanner(message: errorMessage)
+                        .padding(.horizontal)
+                }
 
-            HStack {
-                TextField("Search by address", text: $address)
-                    .textFieldStyle(.roundedBorder)
+                searchCard
+                    .padding(.horizontal)
+
+                filterRow
+
+                recommendationsSection
+
+                resultsSection
+            }
+            .padding(.vertical)
+        }
+        .background(Color(.systemGroupedBackground))
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            bottomBar
+        }
+        .overlay {
+            // Opening a restaurant takes a moment, so show that something is happening
+            if isSubmitting && !locations.isEmpty {
+                ProgressView()
+                    .controlSize(.large)
+                    .padding(24)
+                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+        }
+        .navigationTitle("Discover")
+        .onAppear {
+            // Ask for location early so the map can start where you are
+            locationManager.checkLocationAuthorization()
+        }
+        .task {
+            await loadTriedPlaces()
+        }
+        // Visiting or reviewing happens in the sheet, so refresh when it closes.
+        .sheet(isPresented: $showModal, onDismiss: {
+            Task { await loadTriedPlaces() }
+        }) {
+            ModalContentView(
+                location: location,
+                hours: hours,
+                restaurantName: restaurantName,
+                placeId: selectedPlaceId,
+                distance: distance,
+                showVisited: false,
+                userReviews: userReviews,
+                restaurantReview: restaurantReview,
+                photoUrl: photoUrl,
+                cuisine: selectedCuisine
+            )
+        }
+    }
+
+    // MARK: - Sections
+
+    private var mapCard: some View {
+        Map(position: $camera, selection: $selectedPin) {
+            UserAnnotation()
+            ForEach(displayedLocations) { location in
+                if let lat = location.lat, let lng = location.lng {
+                    Marker(location.name, monogram: Text(CuisineStyle.of(location.cuisine).emoji), coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng))
+                        .tint(Brand.accent)
+                        .tag(location.id)
+                }
+            }
+        }
+        .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        .mapControls {
+            MapUserLocationButton()
+            MapCompass()
+        }
+        .onMapCameraChange(frequency: .onEnd) { context in
+            visibleRegion = context.region
+        }
+        .onChange(of: selectedPin) { _, placeId in
+            guard let placeId, let location = locations.first(where: { $0.id == placeId }) else { return }
+            open(placeId: placeId, name: location.name, cuisine: location.cuisine)
+            selectedPin = nil  // so tapping the same pin again works
+        }
+        .frame(height: 260)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(alignment: .bottomTrailing) {
+            zoomControls
+        }
+        .padding(.horizontal)
+    }
+
+    private var zoomControls: some View {
+        VStack(spacing: 0) {
+            Button {
+                zoom(by: 0.5)
+            } label: {
+                Image(systemName: "plus")
+                    .frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Zoom in")
+
+            Divider()
+                .frame(width: 24)
+
+            Button {
+                zoom(by: 2)
+            } label: {
+                Image(systemName: "minus")
+                    .frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Zoom out")
+        }
+        .buttonStyle(.plain)
+        .font(.body.weight(.semibold))
+        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(12)
+    }
+
+    private var searchCard: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+
+                TextField("Search an address or neighborhood", text: $address)
                     .autocorrectionDisabled()
+                    .submitLabel(.search)
                     .onChange(of: address) { _, newValue in
                         // A programmatic fill from a tapped suggestion: swallow it.
                         if isSelectingSuggestion {
@@ -726,213 +1123,234 @@ struct LocationView: View {
                         }
                     }
 
-                Button {
-                    pickLocation(address: address, radius: radius)
-                } label: {
-                    Image(systemName: "magnifyingglass")
+                if !address.isEmpty {
+                    Button {
+                        address = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Clear search")
                 }
-                .buttonStyle(.bordered)
-                .disabled(isSubmitting || address.isEmpty)
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
 
             if !suggestions.isEmpty {
-                VStack(spacing: 0) {
-                    ForEach(suggestions) { suggestion in
-                        Button {
-                            selectSuggestion(suggestion)
-                        } label: {
-                            HStack {
-                                Text(suggestion.text)
-                                    .foregroundStyle(.primary)
-                                    .multilineTextAlignment(.leading)
-                                Spacer()
-                            }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .contentShape(Rectangle())
+                ForEach(suggestions) { suggestion in
+                    Divider()
+                        .padding(.leading, 44)
+                    Button {
+                        selectSuggestion(suggestion)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "mappin.circle.fill")
+                                .foregroundStyle(Brand.accent)
+                            Text(suggestion.text)
+                                .foregroundStyle(.primary)
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
                         }
-                        Divider()
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                 }
-                .background(.background, in: RoundedRectangle(cornerRadius: 8))
             }
+        }
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
 
-            VStack(spacing: 2) {
-                Slider(value: $radius, in: 0...50) { editing in
-                    isEditing = editing
+    private var filterRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                Menu {
+                    Picker("Search radius", selection: $radius) {
+                        ForEach(radiusOptions, id: \.self) { miles in
+                            Text(milesText(miles)).tag(miles)
+                        }
+                    }
+                } label: {
+                    chip("Within \(milesText(radius))", systemImage: "scope", isOn: false)
                 }
-                Text("Radius: \(radius, specifier: "%.0f") mi")
-                    .font(.footnote)
-                    .foregroundStyle(isEditing ? .primary : .secondary)
-            }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    Menu {
-                        Picker("Sort", selection: $sortOption) {
-                            ForEach(SortOption.allCases) { option in
-                                Text(option.rawValue).tag(option)
-                            }
+                Menu {
+                    Picker("Sort", selection: $sortOption) {
+                        ForEach(SortOption.allCases) { option in
+                            Text(option.rawValue).tag(option)
+                        }
+                    }
+                } label: {
+                    chip(sortOption.rawValue, systemImage: "arrow.up.arrow.down", isOn: sortOption != .bestMatch)
+                }
+
+                ForEach(Meal.allCases) { meal in
+                    let isOn = selectedMeals.contains(meal)
+                    Button {
+                        if isOn {
+                            selectedMeals.remove(meal)
+                        } else {
+                            selectedMeals.insert(meal)
                         }
                     } label: {
-                        Label(sortOption.rawValue, systemImage: "arrow.up.arrow.down")
-                            .font(.footnote)
+                        chip(meal.label, systemImage: meal.icon, isOn: isOn)
                     }
-                    .buttonStyle(.bordered)
-
-                    ForEach(Meal.allCases) { meal in
-                        let isOn = selectedMeals.contains(meal)
-                        filterChip(meal.label, systemImage: meal.icon, isOn: isOn) {
-                            if isOn {
-                                selectedMeals.remove(meal)
-                            } else {
-                                selectedMeals.insert(meal)
-                            }
-                        }
-                    }
-
-                    filterChip("Open Now", systemImage: "clock", isOn: showOpenNow) {
-                        showOpenNow.toggle()
-                    }
-
-                    filterChip("New", systemImage: "sparkles", isOn: showNewOnly) {
-                        showNewOnly.toggle()
-                    }
+                    .accessibilityAddTraits(isOn ? .isSelected : [])
                 }
-            }
 
-            List {
-                if !recommendations.isEmpty {
-                    Section("Recommended for You") {
+                Button {
+                    showOpenNow.toggle()
+                } label: {
+                    chip("Open Now", systemImage: "clock", isOn: showOpenNow)
+                }
+                .accessibilityAddTraits(showOpenNow ? .isSelected : [])
+
+                Button {
+                    showNewOnly.toggle()
+                } label: {
+                    chip("New to Me", systemImage: "sparkles", isOn: showNewOnly)
+                }
+                .accessibilityAddTraits(showNewOnly ? .isSelected : [])
+            }
+        }
+        .contentMargins(.horizontal, 16, for: .scrollContent)
+        .buttonStyle(.plain)
+    }
+
+    /// A filter chip: filled with the brand color when it's on.
+    private func chip(_ title: String, systemImage: String, isOn: Bool) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.subheadline.weight(.medium))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .foregroundStyle(isOn ? Color.white : Color.primary)
+            .background(isOn ? Brand.accent : Color(.secondarySystemGroupedBackground), in: Capsule())
+    }
+
+    @ViewBuilder
+    private var recommendationsSection: some View {
+        if !recommendations.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: "Picked for You", systemImage: "sparkles", caption: "Based on people who eat like you")
+                    .padding(.horizontal)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 12) {
                         ForEach(recommendations) { recommendation in
                             Button {
-                                selectedPlaceId = recommendation.placeId
-                                restaurantData(restaurant_id: recommendation.placeId, restaurant_name: recommendation.name)
+                                open(placeId: recommendation.placeId, name: recommendation.name, cuisine: recommendation.cuisine)
                             } label: {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(recommendation.name)
-                                            .foregroundStyle(.primary)
-                                        Text(recommendation.reason)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        if recommendation.isWildcard {
-                                            Label("Wildcard", systemImage: "sparkles")
-                                                .font(.caption2)
-                                                .foregroundStyle(.purple)
-                                        }
-                                    }
-                                    Spacer()
-                                    // Round so 3.6 shows 4 stars, not 3
-                                    StarRatingView(rating: recommendation.rating.rounded())
-                                    Text("\(recommendation.rating, specifier: "%.1f")")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
+                                RecommendationCard(recommendation: recommendation)
                             }
+                            .buttonStyle(.plain)
                             .disabled(isSubmitting)
                         }
                     }
+                    .scrollTargetLayout()
                 }
+                .contentMargins(.horizontal, 16, for: .scrollContent)
+                .scrollTargetBehavior(.viewAligned)
+            }
+        }
+    }
 
-                Section {
+    private var resultsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if !locations.isEmpty {
+                let shown = displayedLocations.count
+                SectionHeader(
+                    title: "Nearby",
+                    systemImage: "fork.knife",
+                    caption: shown == locations.count ? "\(shown) places" : "\(shown) of \(locations.count) places"
+                )
+            }
+
+            if locations.isEmpty {
+                if isSubmitting {
+                    ProgressView("Finding places to eat…")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                } else {
+                    ContentUnavailableView {
+                        Label("Find your next meal", systemImage: "fork.knife")
+                    } description: {
+                        Text("Tap Find Food, or search an address to see restaurants around it.")
+                    }
+                }
+            } else if displayedLocations.isEmpty {
+                ContentUnavailableView {
+                    Label("No matches", systemImage: "line.3.horizontal.decrease.circle")
+                } description: {
+                    Text("No restaurants match these filters.")
+                } actions: {
+                    Button("Clear Filters") {
+                        selectedMeals = []
+                        showOpenNow = false
+                        showNewOnly = false
+                    }
+                    .buttonStyle(.bordered)
+                }
+            } else {
+                LazyVStack(spacing: 0) {
                     ForEach(displayedLocations) { location in
                         Button {
-                            selectedPlaceId = location.id
-                            restaurantData(restaurant_id: location.id, restaurant_name: location.name)
+                            open(placeId: location.id, name: location.name, cuisine: location.cuisine)
                         } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(location.name)
-                                        .foregroundStyle(.primary)
-                                    rowDetails(for: location)
-                                }
-                                Spacer()
-                                mealBadges(for: location)
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            RestaurantRow(location: location)
                         }
+                        .buttonStyle(.plain)
                         .disabled(isSubmitting)
-                    }
-                }
-            }
-            .listStyle(.plain)
-            .overlay {
-                if displayedLocations.isEmpty && recommendations.isEmpty {
-                    ContentUnavailableView(
-                        locations.isEmpty ? "No restaurants yet" : "No matches",
-                        systemImage: "fork.knife",
-                        description: Text(
-                            locations.isEmpty
-                            ? "Search an address or use your location."
-                            : "No restaurants match the selected filters."
-                        )
-                    )
-                }
-            }
 
-            HStack {
-                
-
-                Button {
-                    if !address.trimmingCharacters(in: .whitespaces).isEmpty {
-                        pickLocation(address: address, radius: radius)
-                    } else {
-                        Task {
-                            if let coordinate = await locationManager.currentLocation() {
-                                latitude = coordinate.latitude
-                                longitude = coordinate.longitude
-                                time = Date()
-                                if let cam = camera.camera {
-                                    camera = .camera(MapCamera(centerCoordinate: coordinate, distance: cam.distance))
-                                }
-                                sendLocation(latitude, longitude, radius, time)
-                            } else {
-                                errorMessage = "Couldn't get your location — allow location access or search an address."
-                            }
+                        if location.id != displayedLocations.last?.id {
+                            Divider()
+                                .padding(.leading, 72)
                         }
                     }
-                } label: {
-                    Label("Find Food", systemImage: "fork.knife")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private var bottomBar: some View {
+        let hasAddress = !address.trimmingCharacters(in: .whitespaces).isEmpty
+        return GlassEffectContainer(spacing: 12) {
+            HStack(spacing: 12) {
+                Button {
+                    findFood()
+                } label: {
+                    HStack(spacing: 8) {
+                        if isSubmitting {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: hasAddress ? "magnifyingglass" : "location.fill")
+                        }
+                        Text(hasAddress ? "Search" : "Find Food")
+                    }
+                    .font(.headline)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glassProminent)
                 .disabled(isSubmitting)
 
                 Button {
                     recommend()
                 } label: {
-                    Label("Recommend", systemImage: "star")
-                        .frame(maxWidth: .infinity)
+                    Label("Recommend", systemImage: "sparkles")
+                        .font(.headline)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
                 .disabled(isSubmitting || displayedLocations.isEmpty)
             }
+            .controlSize(.large)
         }
-        .padding()
-        .navigationTitle("Find Restaurants")
-        .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await loadTriedPlaces()
-        }
-        // Visiting or reviewing happens in the sheet, so refresh when it closes.
-        .sheet(isPresented: $showModal, onDismiss: {
-            Task { await loadTriedPlaces() }
-        }) {
-            ModalContentView(
-                location: location,
-                hours: hours,
-                restaurantName: restaurantName,
-                placeId: selectedPlaceId,
-                distance: distance,
-                showVisited: false,
-                userReviews: userReviews,
-                restaurantReview: restaurantReview,
-                photoUrl: photoUrl
-            )
-        }
+        .padding(.horizontal)
+        .padding(.bottom, 8)
     }
 }
 

@@ -53,6 +53,7 @@ nonisolated struct FoundLocationsDTO: Decodable, Identifiable {
     let averageRating: Double?   // nil when nobody has reviewed it
     let reviewCount: Int
     let hours: Array<OpeningHoursStruct>
+    let cuisine: String?         // a cuisines.py key like "japanese"; nil when unknown
 }
 
 nonisolated struct RestaurantDTO: Decodable{
@@ -73,7 +74,9 @@ nonisolated struct VisitedRestaurantDTO: Decodable, Identifiable {
     let placeId: String
     let id: Int
     let name: String
-    let datesVisited: [String]}
+    let datesVisited: [String]
+    let cuisine: String?
+}
 
 nonisolated struct RestaurantReviewsDTO: Decodable, Identifiable {
     let id: Int
@@ -102,6 +105,7 @@ nonisolated struct RecommendationsDTO: Decodable, Identifiable {
     let rating: Double  // predicted rating, 1-5
     let reason: String  // e.g. "Liked by 3 people with similar taste"
     let isWildcard: Bool  // a cuisine you haven't tried that people with your taste love
+    let cuisine: String?
     var id: String { placeId }
 }
 
@@ -125,6 +129,7 @@ nonisolated struct PreferencesDTO: Decodable {
 nonisolated struct WantToGoDTO: Decodable, Identifiable {
     let placeId: String
     let name: String
+    let cuisine: String?
     var id: String { placeId }
 }
 

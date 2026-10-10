@@ -24,48 +24,52 @@ struct PostLoginView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    NavigationLink(destination: LocationView()) {
-                        Label("Find Restaurants", systemImage: "magnifyingglass")
-                    }
-                    NavigationLink(destination: ShowVisited()) {
-                        Label("Visited Restaurants", systemImage: "checkmark.circle")
-                    }
-                    NavigationLink(destination: WantToGoView()) {
-                        Label("Want to Go", systemImage: "bookmark")
-                    }
-                    NavigationLink(destination: TasteProfileView()) {
-                        Label("Taste Profile", systemImage: "heart")
-                    }
+        TabView {
+            Tab("Discover", systemImage: "fork.knife") {
+                NavigationStack {
+                    LocationView()
                 }
             }
-            .navigationTitle("Restaurant Radar")
-            .task {
-                // First time in (no taste profile saved yet): ask for one
-                if let scores = try? await functionManager.preferences(), scores.isEmpty {
-                    showTasteProfile = true
+            Tab("Want to Go", systemImage: "bookmark") {
+                NavigationStack {
+                    WantToGoView()
                 }
             }
-            .sheet(isPresented: $showTasteProfile) {
+            Tab("Visited", systemImage: "checkmark.seal") {
+                NavigationStack {
+                    ShowVisited()
+                }
+            }
+            Tab("Taste", systemImage: "heart") {
                 NavigationStack {
                     TasteProfileView()
                         .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Skip") {
-                                    showTasteProfile = false
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button("Log Out", role: .destructive) {
+                                    logout()
                                 }
                             }
                         }
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Logout", role: .destructive) {
-                        logout()
+        }
+        .tabBarMinimizeBehavior(.onScrollDown)
+        .task {
+            // First time in (no taste profile saved yet): ask for one
+            if let scores = try? await functionManager.preferences(), scores.isEmpty {
+                showTasteProfile = true
+            }
+        }
+        .sheet(isPresented: $showTasteProfile) {
+            NavigationStack {
+                TasteProfileView()
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Skip") {
+                                showTasteProfile = false
+                            }
+                        }
                     }
-                }
             }
         }
     }

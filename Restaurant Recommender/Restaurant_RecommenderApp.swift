@@ -23,6 +23,7 @@ struct Restaurant_RecommenderApp: App {
         WindowGroup {
             RootView().environment(authManager)
                 .environment(functionManager)
+                .fontDesign(.rounded)
         }
     }
 }

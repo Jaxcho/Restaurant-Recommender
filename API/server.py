@@ -15,11 +15,11 @@ from models import User, UserCreate, UserForm, UserInformation, VisitedRestauran
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from pick_location import geocode
-from cuisines import CUISINES, parse_tastes
+from cuisines import CUISINES, parse_tastes, cuisine_of
 from geopy.distance import geodesic
 from sqlalchemy import func
 
-app = FastAPI(title="Authentication Demo", version="1.0.0")
+app = FastAPI(title="Restaurant Radar API", version="1.0.0")
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
@@ -72,6 +72,7 @@ def _restaurant_list(db, db_restaurants, lat, lng):
             "average_rating": round(float(average), 1) if average is not None else None,
             "review_count": count,
             "hours": json.loads(r.hours) if r.hours else [],
+            "cuisine": cuisine_of(r.primary_type),
         })
         results.append(item)
     return results
@@ -260,6 +261,7 @@ async def show_visited(current_user: User = Depends(get_current_active_user), db
             "hours": restaurant.hours,
             "location": restaurant.location,
             "dates_visited": [],
+            "cuisine": cuisine_of(restaurant.primary_type),
         })
         if date_visited is not None:  # visits saved before dates existed have none
             entry["dates_visited"].append(date_visited)
@@ -352,7 +354,7 @@ async def recommend(body: Recommend, current_user: User = Depends(get_current_ac
     now = (body.day, body.hour, body.minute) if None not in (body.day, body.hour, body.minute) else None
 
     return [
-        {"place_id": restaurant.place_id, "name": restaurant.name, "rating": round(float(rating), 1), "reason": reason, "is_wildcard": is_wildcard}
+        {"place_id": restaurant.place_id, "name": restaurant.name, "rating": round(float(rating), 1), "reason": reason, "is_wildcard": is_wildcard, "cuisine": cuisine_of(restaurant.primary_type)}
         for restaurant, rating, reason, is_wildcard in recommendations.top_picks(candidates, center, now)
     ]
 
@@ -397,7 +399,7 @@ async def get_want_to_go(current_user: User = Depends(get_current_active_user), 
         .order_by(DBWantToGo.id)
         .all()
     )
-    return [{"place_id": r.place_id, "name": r.name} for r in rows]
+    return [{"place_id": r.place_id, "name": r.name, "cuisine": cuisine_of(r.primary_type)} for r in rows]
 
 @app.post("/want_to_go")
 async def add_want_to_go(body: WantToGo, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
@@ -429,8 +431,8 @@ async def remove_want_to_go(place_id: str, current_user: User = Depends(get_curr
 
 @app.post("/party_recommendation")
 async def average_ratings(users, restaurants, db: Session = Depends(get_db)):
-    recommendations = PartyRecommendation
-    recommendations.find_restaurnats(db, users, restaurants)
+    recommendations = PartyRecommendation()
+    recommendations.find_restaurants(db, users, restaurants)
     return recommendations
 
 
