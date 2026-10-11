@@ -152,12 +152,12 @@ extension Endpoint {
         )
     }
     
-    nonisolated static func recommend(placeIds: [String], lat: Double, lng: Double, day: Int, hour: Int, minute: Int) throws -> Endpoint {
+    nonisolated static func recommend(placeIds: [String], lat: Double, lng: Double, day: Int, hour: Int, minute: Int, cravings: [String]) throws -> Endpoint {
         Endpoint(
             path: "/recommend",
             method: .post,
             body: try JSONEncoder.api.encode(
-                RecommendationsPayload(placeIds: placeIds, lat: lat, lng: lng, day: day, hour: hour, minute: minute)
+                RecommendationsPayload(placeIds: placeIds, lat: lat, lng: lng, day: day, hour: hour, minute: minute, cravings: cravings)
             ),
             requiresAuth: true
         )
@@ -201,16 +201,45 @@ extension Endpoint {
         )
     }
     
-    nonisolated static func partyRecommendations(users: [String], restaurants: [String])  throws -> Endpoint {
-        Endpoint(
-            path: "/party_recommendation",
-            method: .post,
-            body: try JSONEncoder.api.encode(PartyRecommendationPayload(users: users, restaurants: restaurants)),
-            requiresAuth: true
-        )    }
-
     nonisolated static func removeWantToGo(placeId: String) -> Endpoint {
         Endpoint(path: "/want_to_go/\(placeId)", method: .delete, requiresAuth: true)
+    }
+
+    // MARK: - Party
+
+    nonisolated static func createParty(lat: Double, lng: Double, radius: Double) throws -> Endpoint {
+        Endpoint(
+            path: "/party",
+            method: .post,
+            body: try JSONEncoder.api.encode(CreatePartyPayload(lat: lat, lng: lng, radius: radius)),
+            requiresAuth: true
+        )
+    }
+
+    nonisolated static func joinParty(code: String) throws -> Endpoint {
+        Endpoint(
+            path: "/party/join",
+            method: .post,
+            body: try JSONEncoder.api.encode(JoinPartyPayload(code: code)),
+            requiresAuth: true
+        )
+    }
+
+    /// The party the user is still in (the body is null when there isn't one).
+    nonisolated static func currentParty() -> Endpoint {
+        Endpoint(path: "/party/current", method: .get, requiresAuth: true)
+    }
+
+    nonisolated static func leaveParty(code: String) -> Endpoint {
+        Endpoint(path: "/party/\(code)/leave", method: .post, requiresAuth: true)
+    }
+
+    nonisolated static func party(code: String) -> Endpoint {
+        Endpoint(path: "/party/\(code)", method: .get, requiresAuth: true)
+    }
+
+    nonisolated static func pickParty(code: String) -> Endpoint {
+        Endpoint(path: "/party/\(code)/pick", method: .post, requiresAuth: true)
     }
 
     nonisolated static let me = Endpoint(path: "users/me", method: .get)

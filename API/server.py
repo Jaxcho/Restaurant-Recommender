@@ -1,17 +1,18 @@
 import asyncio
 import json
+import secrets
 import uvicorn
 from typing import Annotated
 from fastapi import FastAPI, Depends, HTTPException, status, Response, Request, Header
 from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from location import nearby_search, place_details, find_autocomplete, meal_availability
 from auth import (authenticate_user, create_access_token, get_current_active_user, fake_users_db, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash, decode_token, token_validation, get_user)
-from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant, DBReviews, DBQueries, DBQueriedRestaurants, DBUserPreferences, DBWantToGo
+from database import DBUser, get_db, DBUserDinedRestaurants, DBRestaurant, DBReviews, DBQueries, DBQueriedRestaurants, DBUserPreferences, DBWantToGo, DBParty, DBPartyMember
 from recommendation import RecommendationMap, PartyRecommendation
-from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation, RestaurantRating, Autocomplete, Hours, Recommend, Preferences, WantToGo
+from models import User, UserCreate, UserForm, UserInformation, VisitedRestaurant, PickLocation, RestaurantRating, Autocomplete, Hours, Recommend, Preferences, WantToGo, PartyCreate, PartyJoin
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from pick_location import geocode
@@ -88,6 +89,9 @@ def _user_tastes(db, user_id):
 def _taste_list(tastes):
     """{key: score} -> [{"key", "score"}] in CUISINES order, the shape the app decodes."""
     return [{"key": key, "score": tastes[key]} for key in CUISINES if key in tastes]
+
+
+
 
 @app.post("/visited_restaurants")
 async def visited_restaurants(body: VisitedRestaurant, user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
@@ -176,13 +180,8 @@ async def get_reviews(restaurant_id: str, db:Session = Depends(get_db)):
 async def autocomplete(data: Autocomplete):
     return await find_autocomplete(data.text)
 
-@app.post("/find_restaurants")
-async def find_restaurants(user_information: UserInformation, response: Response ,current_user: User = Depends(get_current_active_user), db:Session = Depends(get_db)):
-     
-    lat = user_information.lat
-    lng = user_information.lng
-    radius = user_information.radius*1609.344
-    time = user_information.time
+async def _nearby_restaurants(db, lat, lng, radius_miles):
+    radius = radius_miles * 1609.344
 
     db_query = db.query(DBQueries).filter(
         DBQueries.radius == radius,
@@ -197,10 +196,8 @@ async def find_restaurants(user_information: UserInformation, response: Response
             .filter(DBQueriedRestaurants.queried_id == db_query.id)
             .all()
         )
-        if saved:  # only trust the cache if it actually has restaurants
-            return _restaurant_list(db, saved, lat, lng)
-
-
+        if saved:
+            return saved
 
     data = await nearby_search(lat, lng, radius)
 
@@ -213,8 +210,16 @@ async def find_restaurants(user_information: UserInformation, response: Response
         db.add(DBQueriedRestaurants(queried_id=db_query.id, restaurant_id=db_restaurant.id))
 
     db.commit()
-    return _restaurant_list(db, db_restaurants, lat, lng)
-     
+    return db_restaurants
+
+
+@app.post("/find_restaurants")
+async def find_restaurants(user_information: UserInformation, response: Response, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    lat = user_information.lat
+    lng = user_information.lng
+    rows = await _nearby_restaurants(db, lat, lng, user_information.radius)
+    return _restaurant_list(db, rows, lat, lng)
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to FastAPI Authentication Demo"}
@@ -355,7 +360,7 @@ async def recommend(body: Recommend, current_user: User = Depends(get_current_ac
 
     return [
         {"place_id": restaurant.place_id, "name": restaurant.name, "rating": round(float(rating), 1), "reason": reason, "is_wildcard": is_wildcard, "cuisine": cuisine_of(restaurant.primary_type)}
-        for restaurant, rating, reason, is_wildcard in recommendations.top_picks(candidates, center, now)
+        for restaurant, rating, reason, is_wildcard in recommendations.top_picks(candidates, center, now, set(body.cravings))
     ]
 
 @app.get("/tried_restaurants")
@@ -429,11 +434,137 @@ async def remove_want_to_go(place_id: str, current_user: User = Depends(get_curr
         db.commit()
     return {"removed": place_id}
 
-@app.post("/party_recommendation")
-async def average_ratings(users, restaurants, db: Session = Depends(get_db)):
-    recommendations = PartyRecommendation()
-    recommendations.find_restaurants(db, users, restaurants)
-    return recommendations
+PARTY_CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I/L, so codes are easy to read out
+PARTY_CODE_LENGTH = 6
+PARTY_MAX_AGE = timedelta(hours=24)  # older parties don't come back when the user reopens the app
+PARTY_ENDED = "That party has ended"
+
+def _new_party_code(db):
+    while True:
+        code = "".join(secrets.choice(PARTY_CODE_CHARS) for _ in range(PARTY_CODE_LENGTH))
+        if db.query(DBParty).filter(DBParty.code == code).first() is None:
+            return code
+
+def _find_party(db, code):
+    party = db.query(DBParty).filter(DBParty.code == code.strip().upper()).first()
+    if party is None:
+        raise HTTPException(status_code=404, detail="No party with that code")
+    return party
+
+def _party_member_ids(db, party):
+    """Member user ids in the order they joined (host first)."""
+    rows = db.query(DBPartyMember.user_id).filter(DBPartyMember.party_id == party.id).order_by(DBPartyMember.id).all()
+    return [user_id for (user_id,) in rows]
+
+def _is_ended(party):
+    """Ended by the host, or too old (PARTY_MAX_AGE) — either way it can't be joined or picked."""
+    return party.status == "ended" or party.created_at < datetime.now(timezone.utc) - PARTY_MAX_AGE
+
+def _current_party(db, db_user):
+    """The newest party db_user is still in, or None. Ended and old parties don't count."""
+    cutoff = datetime.now(timezone.utc) - PARTY_MAX_AGE
+    return (
+        db.query(DBParty)
+        .join(DBPartyMember, DBPartyMember.party_id == DBParty.id)
+        .filter(DBPartyMember.user_id == db_user.id, DBParty.status != "ended", DBParty.created_at >= cutoff)
+        .order_by(DBParty.id.desc())
+        .first()
+    )
+
+def _party_info(db, party, db_user):
+    """The party as the app shows it, from db_user's point of view."""
+    members = (
+        db.query(DBUser.username)
+        .join(DBPartyMember, DBPartyMember.user_id == DBUser.id)
+        .filter(DBPartyMember.party_id == party.id)
+        .order_by(DBPartyMember.id)
+        .all()
+    )
+    host = db.query(DBUser.username).filter(DBUser.id == party.host_id).scalar()
+    return {
+        "code": party.code,
+        "host": host,
+        "is_host": party.host_id == db_user.id,
+        "status": "ended" if _is_ended(party) else party.status,
+        "members": [username for (username,) in members],
+        "picks": json.loads(party.picks) if party.picks else [],
+    }
+
+@app.post("/party")
+async def create_party(body: PartyCreate, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    db_user = _get_db_user(db, current_user)
+    party = DBParty(code=_new_party_code(db), host_id=db_user.id, lat=body.lat, lng=body.lng, radius=body.radius)
+    db.add(party)
+    db.flush()  # gives the party its id for the member row
+    db.add(DBPartyMember(party_id=party.id, user_id=db_user.id))
+    db.commit()
+    return _party_info(db, party, db_user)
+
+@app.post("/party/join")
+async def join_party(body: PartyJoin, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    db_user = _get_db_user(db, current_user)
+    party = _find_party(db, body.code)
+    if _is_ended(party):
+        raise HTTPException(status_code=400, detail=PARTY_ENDED)
+    try:
+        db.add(DBPartyMember(party_id=party.id, user_id=db_user.id))
+        db.commit()
+    except IntegrityError:
+        db.rollback()  # already a member — that's fine
+    return _party_info(db, party, db_user)
+
+# Declared before /party/{code} so "current" isn't read as a party code
+@app.get("/party/current")
+async def current_party(current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    """The party the user is still in, so it survives logging out and back in; null if none."""
+    db_user = _get_db_user(db, current_user)
+    party = _current_party(db, db_user)
+    return _party_info(db, party, db_user) if party else None
+
+@app.get("/party/{code}")
+async def get_party(code: str, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    db_user = _get_db_user(db, current_user)
+    party = _find_party(db, code)
+    if db_user.id not in _party_member_ids(db, party):
+        raise HTTPException(status_code=403, detail="Join the party first")
+    return _party_info(db, party, db_user)
+
+@app.post("/party/{code}/pick")
+async def pick_party(code: str, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    db_user = _get_db_user(db, current_user)
+    party = _find_party(db, code)
+    if party.host_id != db_user.id:
+        raise HTTPException(status_code=403, detail="Only the host can pick")
+    if _is_ended(party):
+        raise HTTPException(status_code=400, detail=PARTY_ENDED)
+
+    rows = await _nearby_restaurants(db, party.lat, party.lng, party.radius)
+    if not rows:
+        raise HTTPException(status_code=400, detail="No restaurants nearby. Try a bigger radius.")
+    by_id = {r.id: r for r in rows}
+
+    ranked = PartyRecommendation().find_restaurants(db, _party_member_ids(db, party), list(by_id))
+    picks = [
+        {"place_id": by_id[restaurant_id].place_id, "name": by_id[restaurant_id].name, "score": round(float(average), 1), "lowest": round(float(lowest), 1)}
+        for restaurant_id, average, lowest in ranked
+    ]
+    party.picks = json.dumps(picks)
+    party.status = "picked"
+    db.commit()
+    return _party_info(db, party, db_user)
+
+@app.post("/party/{code}/leave")
+async def leave_party(code: str, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    db_user = _get_db_user(db, current_user)
+    party = _find_party(db, code)
+    if party.host_id == db_user.id:
+        party.status = "ended"  # the host leaving ends it for everyone
+    else:
+        db.query(DBPartyMember).filter(
+            DBPartyMember.party_id == party.id, DBPartyMember.user_id == db_user.id
+        ).delete()
+    db.commit()
+    return {"left": party.code}
 
 
 @app.post("/opening_hours")
@@ -474,11 +605,6 @@ async def opening_hours(input_hours: Hours, current_user: User = Depends(get_cur
 
     return {"breakfast": breakfast, "lunch": lunch, "dinner": dinner}
 
-
-#todo:
-#send requests through postman
-#make auth
-#check if it went through by using postgres admin and query through users table
 
 
 if __name__ == "__main__":

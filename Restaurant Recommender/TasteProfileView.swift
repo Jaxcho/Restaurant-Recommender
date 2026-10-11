@@ -47,7 +47,8 @@ struct TasteProfileView: View {
             do {
                 // Send every cuisine in the server's order; untouched ones go as 0
                 try await functionManager.savePreferences(scores: scores, order: cuisines.map(\.key))
-                // dismiss() does nothing in the Taste tab, so the button shows "Saved" too
+                // Closes the onboarding sheet, or goes back to Profile
+                // (so the "Saved" label below never actually shows now)
                 justSaved = true
                 dismiss()
             } catch {

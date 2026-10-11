@@ -22,7 +22,10 @@ final class FunctionManager{
     let apiClient: APIClient
     var lat: Double
     var lng: Double
-    
+    // Cuisine keys the user feels like today (from CravingView).
+    // Discover can show only these, and Recommend ranks them higher.
+    var cravings: Set<String> = []
+
     init(apiClient: APIClient) {
         self.apiClient = apiClient
         self.lat = 0.0
@@ -83,12 +86,16 @@ final class FunctionManager{
     
     // Sends the phone's local time, since restaurant hours are local too.
     // Calendar counts Sunday as 1; the API wants 0 = Sunday.
-    func recommendations(placeIds: [String], lat: Double, lng: Double, date: Date) async throws -> Array<RecommendationsDTO> {
+    func recommendations(placeIds: [String], lat: Double, lng: Double, date: Date, cravings: Set<String>) async throws -> Array<RecommendationsDTO> {
         let calendar = Calendar.current
         let day = calendar.component(.weekday, from: date) - 1
         let hour = calendar.component(.hour, from: date)
         let minute = calendar.component(.minute, from: date)
-        return try await apiClient.send(try .recommend(placeIds: placeIds, lat: lat, lng: lng, day: day, hour: hour, minute: minute))
+        return try await apiClient.send(try .recommend(placeIds: placeIds, lat: lat, lng: lng, day: day, hour: hour, minute: minute, cravings: cravings.sorted()))
+    }
+
+    func me() async throws -> UserDTO {
+        return try await apiClient.send(.me)
     }
 
     func triedPlaceIds() async throws -> Set<String> {
@@ -127,12 +134,7 @@ final class FunctionManager{
     func removeWantToGo(placeId: String) async throws {
         try await apiClient.send(.removeWantToGo(placeId: placeId))
     }
-    
-    func partyRecommendations(users: [String], restaurants: [String]) async throws -> PartyRecommendationDTO{
-        return try await apiClient.send(try .partyRecommendations(users: users, restaurants: restaurants))
-    }
-    
-//    post to invite, get to join for parties, token -> exp date and group id
+
     
 //
 //    func location() async {

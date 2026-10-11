@@ -1,5 +1,6 @@
-- App icon
-- Fix name 
-- Parties!
 - Fix the onboarding process, find out how it works and add a "What are you feeling like today?" when they login, 
 and add the show when launched boolean to show or not when they login each time
+- add profile tab for logout, preferences, and dark/light mode
+- make it look less ai generated, emojis not great
+- be able to copy code
+- when a user logs out and logs back in, their party should still exist

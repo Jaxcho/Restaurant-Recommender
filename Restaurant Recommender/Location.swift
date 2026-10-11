@@ -94,8 +94,8 @@ final class LocationModel: NSObject, CLLocationManagerDelegate {
 
 // MARK: - Shared pieces
 
-/// A soft red banner for errors on the Discover screen and the details sheet.
-private struct ErrorBanner: View {
+/// A soft red banner for errors on the Discover, Party and details screens.
+struct ErrorBanner: View {
     let message: String
 
     var body: some View {
@@ -319,14 +319,14 @@ struct ModalContentView: View {
                             ProgressView()
                         }
                     }
-                    .background(style.tint.opacity(0.15))
+                    .background(Color(.tertiarySystemFill))
             } else {
-                // No photo: the cuisine's emoji on a soft tinted panel
+                // No photo: the cuisine's emoji on a plain panel
                 Text(style.emoji)
-                    .font(.system(size: 72))
+                    .font(.system(size: 56))
                     .frame(maxWidth: .infinity)
                     .frame(height: 150)
-                    .background(style.tint.opacity(0.15))
+                    .background(Color(.tertiarySystemFill))
             }
         }
         .frame(maxWidth: .infinity)
@@ -359,7 +359,7 @@ struct ModalContentView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     if cuisine != nil {
-                        TagLabel(text: "\(style.emoji) \(style.label)", tint: style.tint)
+                        TagLabel(text: style.label, tint: .gray)
                     }
                     // A 0,0 search center gives huge bogus distances, so only show believable ones
                     if !showVisited, distance > 0, distance < 100 {
@@ -776,6 +776,9 @@ struct LocationView: View {
     @State private var triedPlaceIds: Set<String> = []
     @State private var showNewOnly: Bool = false
     @State private var showOpenNow: Bool = false
+    // Only list today's cravings (functionManager.cravings), when there are any
+    @State private var showCravingsOnly: Bool = true
+    @State private var showCravings: Bool = false
     @State private var sortOption: SortOption = .bestMatch
     // The pin tapped on the map; opens that restaurant's details.
     @State private var selectedPin: String?
@@ -785,11 +788,13 @@ struct LocationView: View {
     private let radiusOptions: [Double] = [0.5, 1, 2, 5, 10, 25]
 
 
-    /// The list after filters (meals, New, Open Now) and the chosen sort.
+    /// The list after filters (cravings, meals, New, Open Now) and the chosen sort.
     private var displayedLocations: [FoundLocationsDTO] {
         let now = Date()
+        let cravings = functionManager.cravings
         let filtered = locations.filter { location in
             selectedMeals.allSatisfy { $0.isAvailable(in: location) }
+                && (!showCravingsOnly || cravings.isEmpty || cravings.contains(location.cuisine ?? ""))
                 && (!showNewOnly || !triedPlaceIds.contains(location.id))
                 && (!showOpenNow || location.isOpen(at: now))
         }
@@ -912,7 +917,8 @@ struct LocationView: View {
                     placeIds: displayedLocations.map(\.id),
                     lat: latitude,
                     lng: longitude,
-                    date: Date()
+                    date: Date(),
+                    cravings: functionManager.cravings
                 )
                 if recommendations.isEmpty {
                     errorMessage = "No new restaurants to recommend here."
@@ -953,6 +959,13 @@ struct LocationView: View {
 
     private func milesText(_ miles: Double) -> String {
         "\(miles.formatted(.number.precision(.fractionLength(0...1)))) mi"
+    }
+
+    /// "Japanese", or "Japanese +1" when there are more cravings.
+    private var cravingsTitle: String {
+        let labels = functionManager.cravings.map { CuisineStyle.of($0).label }.sorted()
+        guard let first = labels.first else { return "Craving?" }
+        return labels.count == 1 ? first : "\(first) +\(labels.count - 1)"
     }
 
 
@@ -998,6 +1011,14 @@ struct LocationView: View {
         }
         .task {
             await loadTriedPlaces()
+        }
+        // New cravings: show only them again, and drop picks made for the old ones
+        .onChange(of: functionManager.cravings) {
+            showCravingsOnly = true
+            recommendations = []
+        }
+        .sheet(isPresented: $showCravings) {
+            CravingView()
         }
         // Visiting or reviewing happens in the sheet, so refresh when it closes.
         .sheet(isPresented: $showModal, onDismiss: {
@@ -1166,6 +1187,26 @@ struct LocationView: View {
     private var filterRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
+                if functionManager.cravings.isEmpty {
+                    Button {
+                        showCravings = true
+                    } label: {
+                        chip(cravingsTitle, systemImage: "fork.knife", isOn: false)
+                    }
+                } else {
+                    Menu {
+                        Toggle("Only Show These", isOn: $showCravingsOnly)
+                        Button("Change Cravings", systemImage: "pencil") {
+                            showCravings = true
+                        }
+                        Button("Clear Cravings", systemImage: "xmark", role: .destructive) {
+                            functionManager.cravings = []
+                        }
+                    } label: {
+                        chip(cravingsTitle, systemImage: "fork.knife", isOn: showCravingsOnly)
+                    }
+                }
+
                 Menu {
                     Picker("Search radius", selection: $radius) {
                         ForEach(radiusOptions, id: \.self) { miles in
@@ -1286,6 +1327,7 @@ struct LocationView: View {
                     Text("No restaurants match these filters.")
                 } actions: {
                     Button("Clear Filters") {
+                        showCravingsOnly = false
                         selectedMeals = []
                         showOpenNow = false
                         showNewOnly = false

@@ -7,27 +7,22 @@
 import SwiftUI
 
 struct PostLoginView: View {
-    @Environment(AuthManager.self) private var authManager
     @Environment(FunctionManager.self) private var functionManager
+    @AppStorage(SettingsKey.askCravingsOnLaunch) private var askCravingsOnLaunch: Bool = true
     @State private var errorMessage: String? = nil
     @State private var showTasteProfile: Bool = false
-    
-    func logout(){
-        Task {
-            defer {
-              
-            }
-            
-            await authManager.logout()
-           
-        }
-    }
-    
+    @State private var showCravings: Bool = false
+
     var body: some View {
         TabView {
             Tab("Discover", systemImage: "fork.knife") {
                 NavigationStack {
                     LocationView()
+                }
+            }
+            Tab("Party", systemImage: "person.3") {
+                NavigationStack {
+                    PartyHomeView()
                 }
             }
             Tab("Want to Go", systemImage: "bookmark") {
@@ -40,25 +35,26 @@ struct PostLoginView: View {
                     ShowVisited()
                 }
             }
-            Tab("Taste", systemImage: "heart") {
+            Tab("Profile", systemImage: "person.crop.circle") {
                 NavigationStack {
-                    TasteProfileView()
-                        .toolbar {
-                            ToolbarItem(placement: .topBarLeading) {
-                                Button("Log Out", role: .destructive) {
-                                    logout()
-                                }
-                            }
-                        }
+                    ProfileView()
                 }
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        // Runs after every login and every launch with a saved login.
+        // First time in (no taste profile yet): ask for one. Otherwise ask what
+        // they feel like today, unless they turned that off.
         .task {
-            // First time in (no taste profile saved yet): ask for one
-            if let scores = try? await functionManager.preferences(), scores.isEmpty {
+            guard let scores = try? await functionManager.preferences() else { return }
+            if scores.isEmpty {
                 showTasteProfile = true
+            } else if askCravingsOnLaunch {
+                showCravings = true
             }
+        }
+        .sheet(isPresented: $showCravings) {
+            CravingView()
         }
         .sheet(isPresented: $showTasteProfile) {
             NavigationStack {

@@ -57,6 +57,7 @@ class Recommend(BaseModel):
     day: Optional[int] = Field(default=None, ge=0, le=6)          # phone's local time, 0 = Sunday like Google's hours
     hour: Optional[int] = Field(default=None, ge=0, le=23)
     minute: Optional[int] = Field(default=None, ge=0, le=59)
+    cravings: list[str] = []  # cuisine keys the user feels like today; ranked higher
 
 class Taste(BaseModel):
     key: str    # a CUISINES key, e.g. "fast_food"
@@ -67,3 +68,11 @@ class Preferences(BaseModel):
 
 class WantToGo(BaseModel):
     place_id: str
+
+class PartyCreate(BaseModel):
+    lat: float
+    lng: float
+    radius: float  # miles
+
+class PartyJoin(BaseModel):
+    code: str

@@ -9,8 +9,9 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AuthManager.self) private var authManager
-    
-    
+    @Environment(FunctionManager.self) private var functionManager
+    @Environment(PartyManager.self) private var partyManager
+
     var body: some View {
         Group {
             if authManager.isBootstrapping {
@@ -22,6 +23,14 @@ struct RootView: View {
             }
         }
         .animation(.default, value: authManager.isBootstrapping)
+        // Any logout (button or expired session): forget this user's state on the phone.
+        // The party stays saved on the server and comes back after logging in again.
+        .onChange(of: authManager.isAuthenticated) { _, isAuthenticated in
+            if !isAuthenticated {
+                partyManager.reset()
+                functionManager.cravings = []
+            }
+        }
     }
 
     // Shown at launch while a saved login is being checked
@@ -44,4 +53,5 @@ struct RootView: View {
     RootView()
         .environment(AuthManager(apiClient: apiClient))
         .environment(FunctionManager(apiClient: apiClient))
+        .environment(PartyManager(apiClient: apiClient))
 }

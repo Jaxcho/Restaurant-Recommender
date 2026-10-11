@@ -20,6 +20,7 @@ TASTE_NUDGE = 0.5           # how much taste moves a prediction that already has
 
 TOP_PICKS = 5               # how many recommendations to return
 MAX_PER_CUISINE = 2         # most picks one cuisine can take, so the list has variety
+PARTY_MIN_RATING = 2.5      # a party skips places any member is predicted to rate below this
 
 # Context only changes the order, never the predicted rating the user sees
 OPEN_NOW_BONUS = 0.25             # rank boost for places open right now
@@ -28,6 +29,7 @@ CLOSING_SOON_PENALTY = 0.5        # rank drop for places about to close
 CLOSED_PENALTY = 1.5              # rank drop for places closed right now
 DISTANCE_PENALTY_PER_MILE = 0.1   # rank drop per mile from the search center
 MAX_DISTANCE_PENALTY = 1.0        # far places stop losing rank past this
+CRAVING_BONUS = 1.0               # rank boost for cuisines the user said they feel like today
 
 MINUTES_PER_DAY = 24 * 60
 MINUTES_PER_WEEK = 7 * MINUTES_PER_DAY
@@ -291,11 +293,12 @@ class RecommendationMap:
         twin_taste = self.twin_taste(cuisine)
         return twin_taste is not None and twin_taste > STRONG_TASTE
 
-    def top_picks(self, restaurants, center=None, now=None):
+    def top_picks(self, restaurants, center=None, now=None, cravings=()):
         """The restaurants to show -> [(restaurant, rating, reason, is_wildcard)], wildcard last.
 
         restaurants: the DB rows passed to recommend(). Being open and close by (center = (lat, lng),
-        now = (day, hour, minute)) only changes the order; the rating stays the pure prediction.
+        now = (day, hour, minute)) and matching today's cravings (cuisine keys) only change the order;
+        the rating stays the pure prediction.
         """
         by_id = {restaurant.id: restaurant for restaurant in restaurants}
         scores = {}
@@ -304,6 +307,8 @@ class RecommendationMap:
             hours = json.loads(restaurant.hours) if restaurant.hours else []
             location = json.loads(restaurant.location) if restaurant.location else None
             change, notes[restaurant.id] = context_adjustment(hours, location, center, now)
+            if self.cuisines[restaurant.id] in cravings:
+                change += CRAVING_BONUS
             scores[restaurant.id] = self.restaurant_ratings[restaurant.id] + change
 
         picks, wildcard = pick_top(scores, self.cuisines, self.is_wildcard_cuisine)
@@ -349,25 +354,28 @@ class RecommendationMap:
         return prediction, reason
 
 class PartyRecommendation:
-    def __init__(self):
-        pass
-
     def find_restaurants(self, db, users, restaurant_ids):
-        """{user: {restaurant: expected_rating}} for every user and restaurant id."""
-        ratings = {}
+        """Best places for the whole group -> [(restaurant_id, average, lowest)], best first.
+
+        users: member user ids, restaurant_ids: DB restaurant ids. "Least misery": skip places
+        someone would dislike, then rank by the group's average predicted rating.
+        """
+        ratings = []  # one {restaurant: predicted rating} per member
         for user in users:
             recommendation = RecommendationMap()
             recommendation.recommend(db, user, restaurant_ids)
-            ratings[user] = recommendation.restaurant_ratings
-        rating_restaurant = {}
-        for restaurant in restaurant_ids:
-            average = 0
-            for user in users:
-                average += ratings[user][restaurant]
-            average = average/len(users)
-            rating_restaurant[restaurant] = average
-        return rating_restaurant
-        
+            ratings.append(recommendation.restaurant_ratings)
+
+        scored = []
+        for restaurant_id in restaurant_ids:
+            member_ratings = [by_restaurant[restaurant_id] for by_restaurant in ratings]
+            scored.append((restaurant_id, average(member_ratings), min(member_ratings)))
+
+        # If every place leaves someone unhappy, still pick from all of them
+        acceptable = [pick for pick in scored if pick[2] >= PARTY_MIN_RATING] or scored
+        acceptable.sort(key=lambda pick: -pick[1])
+        return acceptable[:TOP_PICKS]
+
 
 
 async def test_map():

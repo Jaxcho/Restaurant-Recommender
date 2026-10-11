@@ -74,7 +74,7 @@ class DBParty(Base):
 
 class DBPartyMember(Base):
     __tablename__ = "party_members"
-    _table_args__ = (UniqueConstraint("party_id", "user_id"),)
+    __table_args__ = (UniqueConstraint("party_id", "user_id"),)
     id = Column(Integer, primary_key=True, index= True)
     party_id= Column(Integer, ForeignKey("parties.id"), index= True, nullable= False)
     user_id = Column(UUID(as_uuid = True),ForeignKey("users.id"), index= True, nullable= False)

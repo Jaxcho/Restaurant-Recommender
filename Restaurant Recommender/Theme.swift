@@ -2,7 +2,7 @@
 //  Theme.swift
 //  Restaurant Recommender
 //
-//  The shared look: brand colors, cuisine emoji, tag chips and the card style.
+//  The shared look: brand colors, cuisine emoji and labels, tag chips and the card style.
 //  The brand orange itself is AccentColor in the asset catalog, so `.tint` and
 //  `Color.accentColor` already use it everywhere.
 //
@@ -21,40 +21,39 @@ enum Brand {
 struct CuisineStyle {
     let emoji: String
     let label: String
-    let tint: Color
 
     static func of(_ key: String?) -> CuisineStyle {
         switch key {
-        case "american": CuisineStyle(emoji: "🍔", label: "American", tint: .red)
-        case "chinese": CuisineStyle(emoji: "🥟", label: "Chinese", tint: .orange)
-        case "japanese": CuisineStyle(emoji: "🍣", label: "Japanese", tint: .pink)
-        case "korean": CuisineStyle(emoji: "🍲", label: "Korean", tint: .purple)
-        case "southeast_asian": CuisineStyle(emoji: "🍜", label: "Southeast Asian", tint: .teal)
-        case "indian": CuisineStyle(emoji: "🍛", label: "Indian", tint: .yellow)
-        case "latin": CuisineStyle(emoji: "🌮", label: "Mexican & Latin", tint: .green)
-        case "italian": CuisineStyle(emoji: "🍕", label: "Italian & Pizza", tint: .mint)
-        case "mediterranean": CuisineStyle(emoji: "🥙", label: "Mediterranean", tint: .cyan)
-        case "brunch": CuisineStyle(emoji: "🥞", label: "Breakfast & Brunch", tint: .yellow)
-        case "fast_food": CuisineStyle(emoji: "🍟", label: "Fast Food", tint: .orange)
-        case "seafood": CuisineStyle(emoji: "🦞", label: "Seafood", tint: .blue)
-        case "vegetarian": CuisineStyle(emoji: "🥗", label: "Vegetarian", tint: .green)
-        default: CuisineStyle(emoji: "🍽️", label: "Restaurant", tint: Brand.accent)
+        case "american": CuisineStyle(emoji: "🍔", label: "American")
+        case "chinese": CuisineStyle(emoji: "🥟", label: "Chinese")
+        case "japanese": CuisineStyle(emoji: "🍣", label: "Japanese")
+        case "korean": CuisineStyle(emoji: "🍲", label: "Korean")
+        case "southeast_asian": CuisineStyle(emoji: "🍜", label: "Southeast Asian")
+        case "indian": CuisineStyle(emoji: "🍛", label: "Indian")
+        case "latin": CuisineStyle(emoji: "🌮", label: "Mexican & Latin")
+        case "italian": CuisineStyle(emoji: "🍕", label: "Italian & Pizza")
+        case "mediterranean": CuisineStyle(emoji: "🥙", label: "Mediterranean")
+        case "brunch": CuisineStyle(emoji: "🥞", label: "Breakfast & Brunch")
+        case "fast_food": CuisineStyle(emoji: "🍟", label: "Fast Food")
+        case "seafood": CuisineStyle(emoji: "🦞", label: "Seafood")
+        case "vegetarian": CuisineStyle(emoji: "🥗", label: "Vegetarian")
+        default: CuisineStyle(emoji: "🍽️", label: "Restaurant")
         }
     }
 }
 
-/// A cuisine's emoji in a soft tinted circle, used as the leading icon on restaurant rows.
+/// A cuisine's emoji on a plain rounded tile, used as the leading icon on restaurant rows.
+/// Every cuisine gets the same neutral tile so the emoji is the only color.
 struct CuisineBadge: View {
     let cuisine: String?
     var size: CGFloat = 44
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
 
     var body: some View {
-        let style = CuisineStyle.of(cuisine)
-        Text(style.emoji)
-            .font(.system(size: size * scale * 0.5))
+        Text(CuisineStyle.of(cuisine).emoji)
+            .font(.system(size: size * scale * 0.45))
             .frame(width: size * scale, height: size * scale)
-            .background(style.tint.opacity(0.15), in: Circle())
+            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: size * scale * 0.28, style: .continuous))
             .accessibilityHidden(true)
     }
 }

@@ -133,9 +133,21 @@ nonisolated struct WantToGoDTO: Decodable, Identifiable {
     var id: String { placeId }
 }
 
-nonisolated struct PartyRecommendationDTO: Decodable {
+nonisolated struct PartyPickDTO: Decodable, Identifiable {
     let placeId: String
-    let rating: Double
+    let name: String
+    let score: Double   // the group's average predicted rating, 1-5
+    let lowest: Double  // the least happy member's predicted rating
+    var id: String { placeId }
+}
+
+nonisolated struct PartyDTO: Decodable {
+    let code: String
+    let host: String
+    let isHost: Bool
+    let status: String  // "waiting" until the host picks, then "picked"; "ended" once the host leaves
+    let members: [String]
+    let picks: [PartyPickDTO]
 }
 
 
@@ -191,6 +203,8 @@ nonisolated struct RecommendationsPayload: Encodable {
     let day: Int
     let hour: Int
     let minute: Int
+    // Cuisine keys the user feels like today; ranked higher
+    let cravings: [String]
 }
 
 nonisolated struct PreferencesPayload: Encodable {
@@ -201,7 +215,12 @@ nonisolated struct WantToGoPayload: Encodable {
     let placeId: String
 }
 
-nonisolated struct PartyRecommendationPayload: Encodable {
-    let users: [String]
-    let restaurants: [String]
+nonisolated struct CreatePartyPayload: Encodable {
+    let lat: Double
+    let lng: Double
+    let radius: Double  // miles
+}
+
+nonisolated struct JoinPartyPayload: Encodable {
+    let code: String
 }
