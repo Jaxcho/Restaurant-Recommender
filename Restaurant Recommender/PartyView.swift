@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 private let partyCodeLength = 6
 
