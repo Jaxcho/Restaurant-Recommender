@@ -49,6 +49,8 @@ def _save_restaurants(db, data):
             db_restaurant.location = json.dumps(restaurant["location"])
         if not db_restaurant.primary_type:
             db_restaurant.primary_type = restaurant["primary_type"]
+        # Always take the fresh price, since prices change
+        db_restaurant.price_per_person = restaurant["price_per_person"]
         db_restaurants.append(db_restaurant)
     return db_restaurants
 
@@ -74,6 +76,7 @@ def _restaurant_list(db, db_restaurants, lat, lng):
             "review_count": count,
             "hours": json.loads(r.hours) if r.hours else [],
             "cuisine": cuisine_of(r.primary_type),
+            "price_per_person": r.price_per_person,
         })
         results.append(item)
     return results

@@ -57,6 +57,22 @@ def meal_availability(periods):
   return flags
 
 
+def price_per_person(place):
+  """The middle of Google's per-person price range, in whole dollars, e.g. $10-20 -> 15.
+
+  None when Google has no range in USD (the app's price filter is in dollars).
+  A range with no end price, like "$100+", uses its start price.
+  """
+  if "price_range" not in place:
+    return None
+  start = place.price_range.start_price
+  if start.currency_code != "USD":
+    return None
+  if "end_price" not in place.price_range:
+    return start.units
+  return round((start.units + place.price_range.end_price.units) / 2)
+
+
 async def nearby_search(lat, lng, radius):
 
   center_point = latlng_pb2.LatLng(latitude = lat, longitude = lng)
@@ -72,7 +88,7 @@ async def nearby_search(lat, lng, radius):
       included_types = ["restaurant"]
   )
 
-  fieldMask = "places.id,places.displayName,places.regularOpeningHours,places.location,places.primaryType,places.types"
+  fieldMask = "places.id,places.displayName,places.regularOpeningHours,places.location,places.primaryType,places.types,places.priceRange"
   response = await client.search_nearby(request=request, metadata=[("x-goog-fieldmask",fieldMask)])
 
   results = []
@@ -89,6 +105,7 @@ async def nearby_search(lat, lng, radius):
       "hours": periods,
       "location": [place.location.latitude, place.location.longitude],
       "primary_type": resolve_type(place.primary_type, list(place.types)),
+      "price_per_person": price_per_person(place),
       **flags,
     })
 

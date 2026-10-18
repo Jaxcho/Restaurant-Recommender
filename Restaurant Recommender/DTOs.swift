@@ -54,6 +54,7 @@ nonisolated struct FoundLocationsDTO: Decodable, Identifiable {
     let reviewCount: Int
     let hours: Array<OpeningHoursStruct>
     let cuisine: String?         // a cuisines.py key like "japanese"; nil when unknown
+    let pricePerPerson: Int?     // average dollars per person; nil when Google doesn't know
 }
 
 nonisolated struct RestaurantDTO: Decodable{

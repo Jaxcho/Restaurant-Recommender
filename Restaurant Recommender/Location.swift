@@ -647,7 +647,7 @@ private struct RestaurantRow: View {
         .contentShape(Rectangle())
     }
 
-    /// "★ 4.2 (12) · 0.8 mi · Open"; parts with no data are left out.
+    /// "★ 4.2 (12) · 0.8 mi · ~$15 · Open"; parts with no data are left out.
     private var details: Text {
         var parts: [Text] = []
         if let averageRating = location.averageRating {
@@ -655,6 +655,9 @@ private struct RestaurantRow: View {
         }
         if let distance = location.distance {
             parts.append(Text("\(distance, specifier: "%.1f") mi"))
+        }
+        if let price = location.pricePerPerson {
+            parts.append(Text("~$\(price)"))
         }
         if !location.hours.isEmpty {
             let isOpen = location.isOpen(at: Date())
@@ -780,15 +783,18 @@ struct LocationView: View {
     @State private var showCravingsOnly: Bool = true
     @State private var showCravings: Bool = false
     @State private var sortOption: SortOption = .bestMatch
+    // Only show places whose average price per person is under this; nil = any price
+    @State private var maxPrice: Int?
     // The pin tapped on the map; opens that restaurant's details.
     @State private var selectedPin: String?
     @State private var photoUrl: String?
 
     // Google rejects searches wider than about 31 miles
     private let radiusOptions: [Double] = [0.5, 1, 2, 5, 10, 25]
+    private let priceOptions: [Int] = [10, 20, 30, 50]
 
 
-    /// The list after filters (cravings, meals, New, Open Now) and the chosen sort.
+    /// The list after filters (cravings, meals, price, New, Open Now) and the chosen sort.
     private var displayedLocations: [FoundLocationsDTO] {
         let now = Date()
         let cravings = functionManager.cravings
@@ -797,6 +803,7 @@ struct LocationView: View {
                 && (!showCravingsOnly || cravings.isEmpty || cravings.contains(location.cuisine ?? ""))
                 && (!showNewOnly || !triedPlaceIds.contains(location.id))
                 && (!showOpenNow || location.isOpen(at: now))
+                && fitsBudget(location)
         }
         switch sortOption {
         case .bestMatch:
@@ -807,6 +814,14 @@ struct LocationView: View {
         case .rating:
             return filtered.sorted { ($0.averageRating ?? 0) > ($1.averageRating ?? 0) }
         }
+    }
+
+    /// No price limit, or the place's average price is under it.
+    /// Places with no known price are hidden while a limit is on.
+    private func fitsBudget(_ location: FoundLocationsDTO) -> Bool {
+        guard let maxPrice else { return true }
+        guard let price = location.pricePerPerson else { return false }
+        return price < maxPrice
     }
 
     /// Fills the search bar with a suggestion and searches for it.
@@ -1218,6 +1233,20 @@ struct LocationView: View {
                 }
 
                 Menu {
+                    Section("Average per person") {
+                        Picker("Price", selection: $maxPrice) {
+                            // Tags must be Int? to match maxPrice, or nothing gets selected
+                            Text("Any Price").tag(Int?.none)
+                            ForEach(priceOptions, id: \.self) { price in
+                                Text("Under $\(price)").tag(Int?.some(price))
+                            }
+                        }
+                    }
+                } label: {
+                    chip(maxPrice.map { "Under $\($0)" } ?? "Any Price", systemImage: "dollarsign.circle", isOn: maxPrice != nil)
+                }
+
+                Menu {
                     Picker("Sort", selection: $sortOption) {
                         ForEach(SortOption.allCases) { option in
                             Text(option.rawValue).tag(option)
@@ -1331,6 +1360,7 @@ struct LocationView: View {
                         selectedMeals = []
                         showOpenNow = false
                         showNewOnly = false
+                        maxPrice = nil
                     }
                     .buttonStyle(.bordered)
                 }

@@ -52,6 +52,7 @@ class DBRestaurant(Base):
     hours = Column(String)
     location = Column(String)
     primary_type = Column(String)  # Google's main type, e.g. "chinese_restaurant"
+    price_per_person = Column(Integer)  # average dollars per person; NULL when Google doesn't know
 
 class DBWantToGo(Base):
     __tablename__ = "want_to_go"
@@ -139,6 +140,7 @@ Base.metadata.create_all(bind=engine)
 # There are no real Alembic migrations yet, so add new columns here (safe to re-run).
 with engine.begin() as connection:
     connection.execute(text("ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS primary_type VARCHAR"))
+    connection.execute(text("ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS price_per_person INTEGER"))
     # Older visits were saved before dates existed, so they stay NULL
     connection.execute(text("ALTER TABLE user_dined_restaurants ADD COLUMN IF NOT EXISTS date_visited DATE"))
     # The old rule allowed only one visit per place ever; replace it with one per place per day
